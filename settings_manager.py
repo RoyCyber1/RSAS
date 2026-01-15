@@ -35,6 +35,10 @@ class SettingsManager:
                 "original_sequence": True,
                 "original_structure": True,
 
+                # ✨ NEW: Full-length structures at all temperatures
+                "full_structure_37": False,
+                "full_structure_42": False,
+
                 # Original sequence MFE at different temps
                 "original_mfe_25": False,  # NEW for cancer research
                 "original_mfe_37": False,  # NEW for cancer research
@@ -52,6 +56,26 @@ class SettingsManager:
                 "original_au_in_range": False,
                 "original_gc_in_range": False,
                 "original_gu_in_range": False,
+
+                # ✨ NEW: Full-length RBS sequestering at 25°C
+                "full_rbs_25_seq": False,
+                "full_rbs_25_struct": False,
+                "full_rbs_25_paired": False,
+
+                # ✨ NEW: Full-length RBS sequestering at 37°C
+                "full_rbs_37_seq": False,
+                "full_rbs_37_struct": False,
+                "full_rbs_37_paired": False,
+
+                # ✨ NEW: Full-length RBS sequestering at 42°C
+                "full_rbs_42_seq": False,
+                "full_rbs_42_struct": False,
+                "full_rbs_42_paired": False,
+
+                # ✨ NEW: RBS sequestering differences
+                "rbs_seq_diff_42_25": False,
+                "rbs_seq_diff_37_25": False,
+
 
                 # Hairpin info
                 "hairpin_sequence": True,
@@ -95,6 +119,7 @@ class SettingsManager:
                 "calculate_hairpin_composition": True,  # Always calculate (needed for quality)
                 "calculate_hairpin_mfe_temps": True,  # Always calculate (needed for quality)
                 "calculate_rbs": True,  # RBS detection
+                "calculate_rbs_full_length": False,  # NEW: RBS sequestering in full-length structures
             },
             "sequence_processing": {
                 "append_sequence_enabled": False,
@@ -159,6 +184,12 @@ class SettingsManager:
             ("name", "Name"),
             ("original_sequence", "Sequence"),
             ("original_structure", "Structure"),
+
+            # ✨ NEW: Full-length structures
+            ("full_structure_37", "Full_Structure_37C"),
+            ("full_structure_42", "Full_Structure_42C"),
+
+
             ("original_mfe_25", "Original_MFE_25C"),
             ("original_mfe_37", "Original_MFE_37C"),
             ("original_mfe_42", "Original_MFE_42C"),
@@ -172,6 +203,19 @@ class SettingsManager:
             ("original_au_in_range", "Original_AU%_InRange"),
             ("original_gc_in_range", "Original_GC%_InRange"),
             ("original_gu_in_range", "Original_GU%_InRange"),
+
+            # ✨ NEW: Full-length RBS sequestering
+            ("full_rbs_25_seq", "Full_RBS_25C_Seq"),
+            ("full_rbs_25_struct", "Full_RBS_25C_Struct"),
+            ("full_rbs_25_paired", "Full_RBS_25C_Paired%"),
+            ("full_rbs_37_seq", "Full_RBS_37C_Seq"),
+            ("full_rbs_37_struct", "Full_RBS_37C_Struct"),
+            ("full_rbs_37_paired", "Full_RBS_37C_Paired%"),
+            ("full_rbs_42_seq", "Full_RBS_42C_Seq"),
+            ("full_rbs_42_struct", "Full_RBS_42C_Struct"),
+            ("full_rbs_42_paired", "Full_RBS_42C_Paired%"),
+            ("rbs_seq_diff_42_25", "RBS_Seq_Diff_42-25"),
+            ("rbs_seq_diff_37_25", "RBS_Seq_Diff_37-25"),
 
             ("hairpin_sequence", "Hairpin_Sequence"),
             ("hairpin_structure", "Hairpin_Structure"),

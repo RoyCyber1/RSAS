@@ -56,12 +56,18 @@ def build_csv_row(result_data: dict, settings_manager) -> list:
         ("name", "name"),
         ("original_sequence", "original_sequence"),
         ("original_structure", "original_structure"),
+
+        # NEW: Full-length structures
+        ("full_structure_37", "full_structure_37"),
+        ("full_structure_42", "full_structure_42"),
+
         ("original_mfe_25", "original_mfe_25"),
         ("original_mfe_37", "original_mfe_37"),
         ("original_mfe_42", "original_mfe_42"),
         ("original_au_percent", "original_au_percent"),
         ("original_gc_percent", "original_gc_percent"),
         ("original_gu_percent", "original_gu_percent"),
+
 
         # ✨ NEW: Original sequence range checks
         ("original_mfe_25_in_range", "original_mfe_25_in_range"),
@@ -70,6 +76,19 @@ def build_csv_row(result_data: dict, settings_manager) -> list:
         ("original_au_in_range", "original_au_in_range"),
         ("original_gc_in_range", "original_gc_in_range"),
         ("original_gu_in_range", "original_gu_in_range"),
+
+        # ✨ NEW: Full-length RBS sequestering
+        ("full_rbs_25_seq", "full_rbs_25_seq"),
+        ("full_rbs_25_struct", "full_rbs_25_struct"),
+        ("full_rbs_25_paired", "full_rbs_25_paired"),
+        ("full_rbs_37_seq", "full_rbs_37_seq"),
+        ("full_rbs_37_struct", "full_rbs_37_struct"),
+        ("full_rbs_37_paired", "full_rbs_37_paired"),
+        ("full_rbs_42_seq", "full_rbs_42_seq"),
+        ("full_rbs_42_struct", "full_rbs_42_struct"),
+        ("full_rbs_42_paired", "full_rbs_42_paired"),
+        ("rbs_seq_diff_42_25", "rbs_seq_diff_42_25"),
+        ("rbs_seq_diff_37_25", "rbs_seq_diff_37_25"),
 
         ("hairpin_sequence", "hairpin_sequence"),
         ("hairpin_structure", "hairpin_structure"),

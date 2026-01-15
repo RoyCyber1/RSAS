@@ -98,6 +98,14 @@ UPDATED for RoyCyber1's complete data structure
         )
         cancer_btn.pack(side=tk.LEFT, padx=5)
 
+        cold_btn = ttk.Button(
+            button_frame,
+            text="Riboswitch",
+            command=self._apply_cold_riboswitch_preset,
+            width=20
+        )
+        cold_btn.pack(side=tk.LEFT, padx=5)
+
         # Add tooltips/descriptions
         tooltip_frame = ttk.Frame(preset_frame)
         tooltip_frame.pack(fill=tk.X, pady=(10, 0))
@@ -117,6 +125,15 @@ UPDATED for RoyCyber1's complete data structure
             foreground="gray"
         )
         cancer_desc.pack(anchor=tk.W)
+
+        # ✨ NEW: Cold riboswitch description
+        cold_desc = ttk.Label(
+            tooltip_frame,
+            text="Riboswitch Preset: Focus on RBS sequestering differences (Δ temp)",
+            font=("Arial", 8),
+            foreground="gray"
+        )
+        cold_desc.pack(anchor=tk.W)
 
     def _create_custom_section(self, parent):
         """Create custom checkbox section"""
@@ -147,6 +164,11 @@ UPDATED for RoyCyber1's complete data structure
                 ("original_sequence", "Complete Sequence"),
                 ("original_structure", "Complete Structure (dot-bracket)")
             ]),
+            ("Full-Length Structures", [
+                ("full_structure_37", "Full Structure at 37°C"),
+                ("full_structure_42", "Full Structure at 42°C")
+            ]),
+
             ("Complete Sequence MFE at Temperatures", [
                 ("original_mfe_25", "Original MFE at 25°C"),
                 ("original_mfe_37", "Original MFE at 37°C"),
@@ -166,6 +188,20 @@ UPDATED for RoyCyber1's complete data structure
                 ("original_au_in_range", "Original AU% In Range"),
                 ("original_gc_in_range", "Original GC% In Range"),
                 ("original_gu_in_range", "Original GU% In Range")
+            ]),
+
+            ("RBS Full Length Settings", [
+                ("full_rbs_25_seq", "Full RBS 25°C Sequence"),
+                ("full_rbs_25_struct", "Full RBS 25°C Structure"),
+                ("full_rbs_25_paired", "Full RBS 25°C Paired%"),
+                ("full_rbs_37_seq", "Full RBS 37°C Sequence"),
+                ("full_rbs_37_struct", "Full RBS 37°C Structure"),
+                ("full_rbs_37_paired", "Full RBS 37°C Paired%"),
+                ("full_rbs_42_seq", "Full RBS 42°C Sequence"),
+                ("full_rbs_42_struct", "Full RBS 42°C Structure"),
+                ("full_rbs_42_paired", "Full RBS 42°C Paired%"),
+                ("rbs_seq_diff_42_25", "RBS Sequestering Δ(42-25)"),
+                ("rbs_seq_diff_37_25", "RBS Sequestering Δ(37-25)")
             ]),
 
             ("Terminal Hairpin Information", [
@@ -264,6 +300,11 @@ UPDATED for RoyCyber1's complete data structure
             "name": True,
             "original_sequence": True,
             "original_structure": True,
+
+            # Full-length structures
+            "full_structure_37": False,
+            "full_structure_42": False,
+
             "original_mfe_25": False,
             "original_mfe_37": False,
             "original_mfe_42": False,
@@ -278,9 +319,21 @@ UPDATED for RoyCyber1's complete data structure
             "original_gc_in_range": False,
             "original_gu_in_range": False,
 
+            # ✨ NEW: Full-length RBS (all disabled for standard)
+            "full_rbs_25_seq": False,
+            "full_rbs_25_struct": False,
+            "full_rbs_25_paired": False,
+            "full_rbs_37_seq": False,
+            "full_rbs_37_struct": False,
+            "full_rbs_37_paired": False,
+            "full_rbs_42_seq": False,
+            "full_rbs_42_struct": False,
+            "full_rbs_42_paired": False,
+            "rbs_seq_diff_42_25": False,
+            "rbs_seq_diff_37_25": False,
+
             "hairpin_sequence": True,
             "hairpin_structure": True,
-            "hairpin_mfe": True,
             "hairpin_au_percent": True,
             "hairpin_gc_percent": True,
             "hairpin_gu_percent": True,
@@ -297,7 +350,7 @@ UPDATED for RoyCyber1's complete data structure
             "rbs_structure": True,
             "rbs_paired_percent": True,
             "quality_score_hairpin": True,
-            "quality_score_original": False  # ✨ NEW
+            "quality_score_original": False
         }
         self._apply_preset(standard_config)
 
@@ -344,6 +397,79 @@ UPDATED for RoyCyber1's complete data structure
         }
         self._apply_preset(cancer_config)
 
+    def _apply_cold_riboswitch_preset(self):
+        """Apply cold riboswitch detection preset configuration"""
+        cold_config = {
+            "name": True,
+            "original_sequence": True,
+            "original_structure": True,
+
+            # Full-length structures (IMPORTANT for cold detection)
+            "full_structure_37": True,
+            "full_structure_42": True,
+
+            # Original MFE (needed for structures at different temps)
+            "original_mfe_25": True,
+            "original_mfe_37": True,
+            "original_mfe_42": True,
+
+            # Original composition (optional, but useful)
+            "original_au_percent": True,
+            "original_gc_percent": True,
+            "original_gu_percent": True,
+
+            # Original range checks (not critical for cold detection)
+            "original_mfe_25_in_range": True,
+            "original_mfe_37_in_range": True,
+            "original_mfe_42_in_range": True,
+            "original_au_in_range": True,
+            "original_gc_in_range": True,
+            "original_gu_in_range": True,
+
+            # ✨ CRITICAL: Full-length RBS sequestering (THE MAIN FOCUS)
+            "full_rbs_25_seq": True,
+            "full_rbs_25_struct": True,
+            "full_rbs_25_paired": True,  # ← KEY: RBS at cold temp
+            "full_rbs_37_seq": True,
+            "full_rbs_37_struct": True,
+            "full_rbs_37_paired": True,  # ← KEY: RBS at body temp
+            "full_rbs_42_seq": True,
+            "full_rbs_42_struct": True,
+            "full_rbs_42_paired": True,  # ← KEY: RBS at high temp
+            "rbs_seq_diff_42_25": True,  # ← 🔥 MOST IMPORTANT: Shows cold vs hot
+            "rbs_seq_diff_37_25": True,  # ← 🔥 IMPORTANT: Shows cold vs normal
+
+            # Hairpin info (basic, not the focus)
+            "hairpin_sequence": True,
+            "hairpin_structure": True,
+            "hairpin_au_percent": True,
+            "hairpin_gc_percent": True,
+            "hairpin_gu_percent": True,
+
+            # Hairpin MFE (optional)
+            "mfe_25c_hairpin": True,
+            "mfe_37c_hairpin": True,
+            "mfe_42c_hairpin": True,
+
+            # Hairpin range checks (not needed for cold detection)
+            "mfe_25_in_range_hairpin": True,
+            "mfe_37_in_range_hairpin": True,
+            "mfe_42_in_range_hairpin": True,
+            "au_in_range_hairpin": True,
+            "gc_in_range_hairpin": True,
+            "gu_in_range_hairpin": True,
+
+            # Hairpin RBS (less important than full-length RBS)
+            "rbs_sequence": True,
+            "rbs_structure": True,
+            "rbs_paired_percent": True,
+
+            # Quality scores (optional)
+            "quality_score_hairpin": True,
+            "quality_score_original": False
+        }
+        self._apply_preset(cold_config)
+
     def _apply_preset(self, config: dict):
         """Apply a preset configuration to checkboxes"""
         for key, value in config.items():
@@ -369,11 +495,7 @@ UPDATED for RoyCyber1's complete data structure
         # If any original MFE column is enabled, enable the calculation
         if (self.settings_manager.settings["csv_output_columns"].get("original_mfe_25", False) or
                 self.settings_manager.settings["csv_output_columns"].get("original_mfe_37", False) or
-                self.settings_manager.settings["csv_output_columns"].get("original_mfe_42", False) or
-                # ✨ NEW: Also check range columns
-                self.settings_manager.settings["csv_output_columns"].get("original_mfe_25_in_range", False) or
-                self.settings_manager.settings["csv_output_columns"].get("original_mfe_37_in_range", False) or
-                self.settings_manager.settings["csv_output_columns"].get("original_mfe_42_in_range", False)):
+                self.settings_manager.settings["csv_output_columns"].get("original_mfe_42", False)):
             calc_settings["calculate_original_mfe_temps"] = True
         else:
             calc_settings["calculate_original_mfe_temps"] = False
@@ -381,14 +503,51 @@ UPDATED for RoyCyber1's complete data structure
         # If any original composition column is enabled, enable the calculation
         if (self.settings_manager.settings["csv_output_columns"].get("original_au_percent", False) or
                 self.settings_manager.settings["csv_output_columns"].get("original_gc_percent", False) or
-                self.settings_manager.settings["csv_output_columns"].get("original_gu_percent", False) or
-                # ✨ NEW: Also check range columns
-                self.settings_manager.settings["csv_output_columns"].get("original_au_in_range", False) or
-                self.settings_manager.settings["csv_output_columns"].get("original_gc_in_range", False) or
-                self.settings_manager.settings["csv_output_columns"].get("original_gu_in_range", False)):
+                self.settings_manager.settings["csv_output_columns"].get("original_gu_percent", False)):
             calc_settings["calculate_original_composition"] = True
         else:
             calc_settings["calculate_original_composition"] = False
+
+        # If any original range check column is enabled, enable the calculation
+        if (self.settings_manager.settings["csv_output_columns"].get("original_mfe_25_in_range", False) or
+                self.settings_manager.settings["csv_output_columns"].get("original_mfe_37_in_range", False) or
+                self.settings_manager.settings["csv_output_columns"].get("original_mfe_42_in_range", False) or
+                self.settings_manager.settings["csv_output_columns"].get("original_au_in_range", False) or
+                self.settings_manager.settings["csv_output_columns"].get("original_gc_in_range", False) or
+                self.settings_manager.settings["csv_output_columns"].get("original_gu_in_range", False) or
+                self.settings_manager.settings["csv_output_columns"].get("quality_score_original", False)):
+            calc_settings["calculate_original_range_checks"] = True
+        else:
+            calc_settings["calculate_original_range_checks"] = False
+
+        # ✨ NEW: If any full-length RBS column is enabled, enable the calculation
+        if (self.settings_manager.settings["csv_output_columns"].get("full_rbs_25_seq", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_25_struct", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_25_paired", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_37_seq", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_37_struct", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_37_paired", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_42_seq", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_42_struct", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_42_paired", False) or
+                self.settings_manager.settings["csv_output_columns"].get("rbs_seq_diff_42_25", False) or
+                self.settings_manager.settings["csv_output_columns"].get("rbs_seq_diff_37_25", False)):
+            calc_settings["calculate_rbs_full_length"] = True
+        else:
+            calc_settings["calculate_rbs_full_length"] = False
+
+        # ✨ NEW: If any 37°C or 42°C full structures/RBS columns are enabled, enable original MFE temps
+        if (self.settings_manager.settings["csv_output_columns"].get("full_structure_37", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_structure_42", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_37_seq", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_37_struct", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_37_paired", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_42_seq", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_42_struct", False) or
+                self.settings_manager.settings["csv_output_columns"].get("full_rbs_42_paired", False) or
+                self.settings_manager.settings["csv_output_columns"].get("rbs_seq_diff_42_25", False) or
+                self.settings_manager.settings["csv_output_columns"].get("rbs_seq_diff_37_25", False)):
+            calc_settings["calculate_original_mfe_temps"] = True
 
         # Update calculation settings
         self.settings_manager.settings["calculation_settings"] = calc_settings
@@ -400,7 +559,6 @@ UPDATED for RoyCyber1's complete data structure
             self.dialog.destroy()
         else:
             messagebox.showerror("Error", "Failed to save settings")
-
 
     def show(self):
         """Show the dialog and wait for it to close"""

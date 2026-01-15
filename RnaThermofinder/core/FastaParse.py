@@ -1,6 +1,7 @@
 import os
+import csv
+from pathlib import Path
 from typing import List, Tuple
-
 
 fasta_path = "/Users/royvaknin/PycharmProjects/RNAThermoFinder/Data/Inputs/bly.fasta"
 
@@ -181,9 +182,6 @@ def get_sequence_stats(sequences: List[Tuple[str, str]]) -> dict:
     }
 
 
-import csv
-from pathlib import Path
-from typing import List, Tuple
 
 
 def read_csv_tsv_sequences(

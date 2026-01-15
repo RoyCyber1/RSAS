@@ -3,6 +3,8 @@
         "name": true,
         "original_sequence": true,
         "original_structure": true,
+        "full_structure_37": true,
+        "full_structure_42": true,
         "original_mfe_25": true,
         "original_mfe_37": true,
         "original_mfe_42": true,
@@ -15,6 +17,17 @@
         "original_au_in_range": true,
         "original_gc_in_range": true,
         "original_gu_in_range": true,
+        "full_rbs_25_seq": true,
+        "full_rbs_25_struct": true,
+        "full_rbs_25_paired": true,
+        "full_rbs_37_seq": true,
+        "full_rbs_37_struct": true,
+        "full_rbs_37_paired": true,
+        "full_rbs_42_seq": true,
+        "full_rbs_42_struct": true,
+        "full_rbs_42_paired": true,
+        "rbs_seq_diff_42_25": true,
+        "rbs_seq_diff_37_25": true,
         "hairpin_sequence": true,
         "hairpin_structure": true,
         "hairpin_au_percent": true,
@@ -38,14 +51,15 @@
     "calculation_settings": {
         "calculate_original_mfe_temps": true,
         "calculate_original_composition": true,
-        "calculate_original_range_checks": false,
+        "calculate_original_range_checks": true,
         "calculate_hairpin_composition": true,
         "calculate_hairpin_mfe_temps": true,
-        "calculate_rbs": true
+        "calculate_rbs": true,
+        "calculate_rbs_full_length": true
     },
     "sequence_processing": {
-        "append_sequence_enabled": false,
-        "append_sequence": "",
+        "append_sequence_enabled": true,
+        "append_sequence": "AUG",
         "append_position": "end"
     },
     "output_preferences": {

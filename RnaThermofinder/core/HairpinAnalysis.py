@@ -166,6 +166,53 @@ def calc_rbs_paired_percent(rbs_struct):
     return percent_paired
 
 
+def find_rbs_in_full_sequence(full_seq, full_structure):
+    """
+    Find RBS sequestering in full-length sequence at different temperatures
+
+    Args:
+        full_seq: Complete RNA sequence
+        full_structure: Dot-bracket structure of full sequence
+
+    Returns:
+        dict: {
+            'rbs_seq': RBS sequence found,
+            'rbs_structure': Dot-bracket structure of RBS,
+            'rbs_paired_percent': Percentage of RBS that is paired
+        }
+    """
+    # Find RBS in the full sequence (same logic as hairpin)
+    rbs_result = find_rbs_in_hairpin(full_seq)
+
+    if not rbs_result["found_rbs"]:
+        return {
+            "rbs_seq": None,
+            "rbs_structure": None,
+            "rbs_paired_percent": None
+        }
+
+    rbs_seq = rbs_result["rbs_seq"]
+
+    # Get RBS structure from full structure
+    rbs_struct = get_rbs_dot_struct(rbs_seq, full_seq, full_structure)
+
+    if rbs_struct is None:
+        return {
+            "rbs_seq": rbs_seq,
+            "rbs_structure": None,
+            "rbs_paired_percent": None
+        }
+
+    # Calculate paired percentage
+    rbs_paired_pct = calc_rbs_paired_percent(rbs_struct)
+
+    return {
+        "rbs_seq": rbs_seq,
+        "rbs_structure": rbs_struct,
+        "rbs_paired_percent": rbs_paired_pct
+    }
+
+
 def validate_sequence(sequence: str, allowed_chars: str = "ACGU") -> bool:
     """
     Check if sequence contains only valid nucleotides
@@ -410,6 +457,7 @@ def calculate_results_final(
             log(f"  Calculating original sequence composition...")
             original_comp = calculate_composition(og_seq)
 
+
             # ✨ CONDITIONAL: Original sequence MFE at temps (only if needed)
         mfe_25_og = mfe_37_og = mfe_42_og = 0.0
         structure_25 = structure_37 = structure_42 = ""
@@ -448,6 +496,71 @@ def calculate_results_final(
         orig_au_str = "In Range" if orig_au_in_range else "Not in Range"
         orig_gc_str = "In Range" if orig_gc_in_range else "Not in Range"
         orig_gu_str = "In Range" if orig_gu_in_range else "Not in Range"
+
+        # ✨ NEW: Full-length RBS sequestering analysis
+        full_rbs_25_seq = None
+        full_rbs_25_struct = None
+        full_rbs_25_paired = None
+
+        full_rbs_37_seq = None
+        full_rbs_37_struct = None
+        full_rbs_37_paired = None
+
+        full_rbs_42_seq = None
+        full_rbs_42_struct = None
+        full_rbs_42_paired = None
+
+        rbs_seq_diff_42_25 = None
+        rbs_seq_diff_37_25 = None
+
+        if calc_settings.get("calculate_rbs_full_length", True):
+            log(f"  Analyzing RBS sequestering in full-length structures...")
+
+            # RBS at 25°C
+            rbs_25_result = find_rbs_in_full_sequence(og_seq, structure_25)
+            full_rbs_25_seq = rbs_25_result["rbs_seq"]
+            full_rbs_25_struct = rbs_25_result["rbs_structure"]
+            full_rbs_25_paired = rbs_25_result["rbs_paired_percent"]
+
+            if full_rbs_25_paired is not None:
+                log(f"    25°C: RBS paired = {full_rbs_25_paired:.1f}%")
+
+            # RBS at 37°C (only if we calculated MFE at this temp)
+            if calc_settings.get("calculate_original_mfe_temps", False):
+                rbs_37_result = find_rbs_in_full_sequence(og_seq, structure_37)
+                full_rbs_37_seq = rbs_37_result["rbs_seq"]
+                full_rbs_37_struct = rbs_37_result["rbs_structure"]
+                full_rbs_37_paired = rbs_37_result["rbs_paired_percent"]
+
+                if full_rbs_37_paired is not None:
+                    log(f"    37°C: RBS paired = {full_rbs_37_paired:.1f}%")
+
+                # RBS at 42°C
+                rbs_42_result = find_rbs_in_full_sequence(og_seq, structure_42)
+                full_rbs_42_seq = rbs_42_result["rbs_seq"]
+                full_rbs_42_struct = rbs_42_result["rbs_structure"]
+                full_rbs_42_paired = rbs_42_result["rbs_paired_percent"]
+
+                if full_rbs_42_paired is not None:
+                    log(f"    42°C: RBS paired = {full_rbs_42_paired:.1f}%")
+
+                # Calculate differences
+                if full_rbs_25_paired is not None and full_rbs_42_paired is not None:
+                    rbs_seq_diff_42_25 = full_rbs_42_paired - full_rbs_25_paired
+                    log(f"    Δ(42-25): {rbs_seq_diff_42_25:+.1f}%")
+
+                if full_rbs_25_paired is not None and full_rbs_37_paired is not None:
+                    rbs_seq_diff_37_25 = full_rbs_37_paired - full_rbs_25_paired
+                    log(f"    Δ(37-25): {rbs_seq_diff_37_25:+.1f}%")
+
+                # Interpretation
+                if rbs_seq_diff_42_25 is not None:
+                    if rbs_seq_diff_42_25 < -10:
+                        log(f"    🧊 COLD RIBOSWITCH candidate (RBS more accessible at low temp)")
+                    elif rbs_seq_diff_42_25 > 10:
+                        log(f"    🔥 HEAT THERMOMETER candidate (RBS more accessible at high temp)")
+        else:
+            log(f"  Skipping RBS analysis (disabled in settings)")
 
         # ✨ NEW: Calculate original sequence quality score (0-6)
         orig_quality_score = sum([
@@ -585,6 +698,12 @@ def calculate_results_final(
             "name": og_name,
             "original_sequence": og_seq,
             "original_structure": structure_25,
+
+            # ✨ NEW: Full structures at all temps
+            "full_structure_37": structure_37 if calc_settings.get("calculate_original_mfe_temps", False) else "",
+            "full_structure_42": structure_42 if calc_settings.get("calculate_original_mfe_temps", False) else "",
+
+            # MFE for Full length
             "original_mfe_25": f"{mfe_25_og:.2f}",
             "original_mfe_37": f"{mfe_37_og:.2f}",
             "original_mfe_42": f"{mfe_42_og:.2f}",
@@ -599,6 +718,26 @@ def calculate_results_final(
             "original_au_in_range": orig_au_str,
             "original_gc_in_range": orig_gc_str,
             "original_gu_in_range": orig_gu_str,
+
+            # Original RBS
+            # ✨ NEW: Full-length RBS sequestering at 25°C
+            "full_rbs_25_seq": full_rbs_25_seq if full_rbs_25_seq else "Not Found",
+            "full_rbs_25_struct": full_rbs_25_struct if full_rbs_25_struct else "N/A",
+            "full_rbs_25_paired": f"{full_rbs_25_paired:.2f}" if full_rbs_25_paired is not None else "N/A",
+
+            # ✨ NEW: Full-length RBS sequestering at 37°C
+            "full_rbs_37_seq": full_rbs_37_seq if full_rbs_37_seq else "Not Found",
+            "full_rbs_37_struct": full_rbs_37_struct if full_rbs_37_struct else "N/A",
+            "full_rbs_37_paired": f"{full_rbs_37_paired:.2f}" if full_rbs_37_paired is not None else "N/A",
+
+            # ✨ NEW: Full-length RBS sequestering at 42°C
+            "full_rbs_42_seq": full_rbs_42_seq if full_rbs_42_seq else "Not Found",
+            "full_rbs_42_struct": full_rbs_42_struct if full_rbs_42_struct else "N/A",
+            "full_rbs_42_paired": f"{full_rbs_42_paired:.2f}" if full_rbs_42_paired is not None else "N/A",
+
+            # ✨ NEW: RBS sequestering differences
+            "rbs_seq_diff_42_25": f"{rbs_seq_diff_42_25:+.2f}" if rbs_seq_diff_42_25 is not None else "N/A",
+            "rbs_seq_diff_37_25": f"{rbs_seq_diff_37_25:+.2f}" if rbs_seq_diff_37_25 is not None else "N/A",
 
             "hairpin_sequence": hairpin_seq,
             "hairpin_structure": hairpin_struct,
@@ -658,6 +797,8 @@ def calculate_results_final(
             "Name",
             "Sequence",
             "Structure",
+            "Full_Structure_37C",
+            "Full_Structure_42C",
             "Original_MFE_25C",
             "Original_MFE_37C",
             "Original_MFE_42C",
@@ -670,6 +811,21 @@ def calculate_results_final(
             "Original_AU%_InRange",
             "Original_GC%_InRange",
             "Original_GU%_InRange",
+
+            # ✨ NEW: Full-length RBS sequestering
+            "Full_RBS_25C_Seq",
+            "Full_RBS_25C_Struct",
+            "Full_RBS_25C_Paired%",
+            "Full_RBS_37C_Seq",
+            "Full_RBS_37C_Struct",
+            "Full_RBS_37C_Paired%",
+            "Full_RBS_42C_Seq",
+            "Full_RBS_42C_Struct",
+            "Full_RBS_42C_Paired%",
+            "RBS_Seq_Diff_42-25",
+            "RBS_Seq_Diff_37-25",
+
+            #Hairpin Stuff
             "Hairpin_Sequence",
             "Hairpin_Structure",
             "Hairpin_AU%",
@@ -714,6 +870,12 @@ def calculate_results_final(
                     result_data.get("name", ""),
                     result_data.get("original_sequence", ""),
                     result_data.get("original_structure", ""),
+
+                    # ✨ NEW: Full structures
+                    result_data.get("full_structure_37", ""),
+                    result_data.get("full_structure_42", ""),
+
+
                     result_data.get("original_mfe_25", ""),
                     result_data.get("original_mfe_37", ""),
                     result_data.get("original_mfe_42", ""),
@@ -727,6 +889,19 @@ def calculate_results_final(
                     result_data.get("original_au_in_range", ""),
                     result_data.get("original_gc_in_range", ""),
                     result_data.get("original_gu_in_range", ""),
+
+                    #NEW: Full-length RBS sequestering
+                    result_data.get("full_rbs_25_seq", ""),
+                    result_data.get("full_rbs_25_struct", ""),
+                    result_data.get("full_rbs_25_paired", ""),
+                    result_data.get("full_rbs_37_seq", ""),
+                    result_data.get("full_rbs_37_struct", ""),
+                    result_data.get("full_rbs_37_paired", ""),
+                    result_data.get("full_rbs_42_seq", ""),
+                    result_data.get("full_rbs_42_struct", ""),
+                    result_data.get("full_rbs_42_paired", ""),
+                    result_data.get("rbs_seq_diff_42_25", ""),
+                    result_data.get("rbs_seq_diff_37_25", ""),
 
                     result_data.get("hairpin_sequence", ""),
                     result_data.get("hairpin_structure", ""),
