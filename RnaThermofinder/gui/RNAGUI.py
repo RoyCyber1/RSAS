@@ -23,7 +23,7 @@ class RNAThermoFinderGUI:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("RNA Thermometer Finder v2.0.0")
+        self.root.title("RNA Thermometer Finder v2.1.0")
         self.root.geometry("1000x500")
 
         #Theme
@@ -81,7 +81,7 @@ class RNAThermoFinderGUI:
         # Subtitle/Version
         subtitle_label = tk.Label(
             header_frame,
-            text="Bioinformatics Analysis Tool  •  v1.0",
+            text="Bioinformatics Analysis Tool  •  v2.1.0",
             font=("Segoe UI", 9),
             bg=self.colors['header_bg'],
             fg='#95a5a6'
