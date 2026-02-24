@@ -3,13 +3,14 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = []
 binaries = []
-hiddenimports = ['RNA', 'tkinter', 'numpy', 'Bio', 'PIL']
-
+hiddenimports = ['RNA', 'tkinter', 'customtkinter', 'numpy', 'Bio', 'PIL']
+tmp_ret = collect_all('RNA')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('RnaThermofinder')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
 tmp_ret = collect_all('customtkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+
 
 a = Analysis(
     ['main.py'],
@@ -42,6 +43,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['icon.icns'],
 )
 coll = COLLECT(
     exe,
@@ -55,6 +57,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='RSAS.app',
-    icon=None,
+    icon='icon.icns',
     bundle_identifier='com.royvaknin.rsas',
 )
