@@ -23,6 +23,10 @@ def build_app():
 
     print(f"Entry point: {main_script}")
 
+    # Check for app icon
+    icon_mac = 'icon.icns' if os.path.exists('icon.icns') else None
+    icon_win = 'icon.ico' if os.path.exists('icon.ico') else None
+
     base_options = [
         main_script,
         '--name=RSAS',
@@ -34,6 +38,7 @@ def build_app():
         '--hidden-import=numpy',
         '--hidden-import=Bio',
         '--hidden-import=PIL',
+        '--collect-all=RNA',
         '--collect-all=RnaThermofinder',
         '--collect-all=customtkinter',
         '--exclude-module=matplotlib',
@@ -49,6 +54,9 @@ def build_app():
             '--onedir',
             '--osx-bundle-identifier=com.royvaknin.rsas',
         ]
+        if icon_mac:
+            options.append(f'--icon={icon_mac}')
+            print(f"Using icon: {icon_mac}")
         output_msg = "open dist/RSAS.app"
 
     elif system == "Windows":
@@ -57,6 +65,9 @@ def build_app():
             '--windowed',
             '--onefile',
         ]
+        if icon_win:
+            options.append(f'--icon={icon_win}')
+            print(f"Using icon: {icon_win}")
         output_msg = "dist\\RSAS.exe"
 
     else:
