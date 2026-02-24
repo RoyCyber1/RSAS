@@ -1,36 +1,65 @@
+"""
+Sequence Settings Dialog — CustomTkinter edition.
+Drop-in replacement for sequence_settings_dialog.py with dark-mode support.
+"""
+
 import tkinter as tk
-from tkinter import ttk, messagebox
-from typing import Optional
+import customtkinter as ctk
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from settings_manager import SettingsManager
 
+#Toast dialog
+class _DialogToast(ctk.CTkFrame):
+    _COLORS = {
+        "info":    ("#2980b9", "#ffffff"),
+        "success": ("#27ae60", "#ffffff"),
+        "error":   ("#e74c3c", "#ffffff"),
+        "warning": ("#f39c12", "#ffffff"),
+    }
 
-class SequenceSettingsDialog:
-    """Dialog for configuring sequence preprocessing options"""
+    def __init__(self, master, message: str, kind: str = "info", duration: int = 2500):
+        bg, fg = self._COLORS.get(kind, self._COLORS["info"])
+        super().__init__(master, fg_color=bg, corner_radius=8, height=36)
+        ctk.CTkLabel(self, text=message, text_color=fg,
+                     font=ctk.CTkFont(size=12)).pack(padx=14, pady=7)
+        self._duration = duration
+
+    def show(self):
+        self.place(relx=0.5, rely=0.0, anchor="n", y=6)
+        self.lift()
+        self.after(self._duration, self._dismiss)
+
+    def _dismiss(self):
+        try:
+            self.place_forget()
+            self.destroy()
+        except Exception:
+            pass
+
+# Class for the sequence settings dialog with a modern look
+class SequenceSettingsDialogModern:
+    """Dialog for configuring sequence preprocessing options (CTk)."""
+
+    ACCENT = "#2980b9"
 
     def __init__(self, parent, settings_manager: SettingsManager):
         self.parent = parent
         self.settings_manager = settings_manager
         self.dialog = None
 
-        # Variables for settings
         self.append_enabled_var = None
         self.append_sequence_var = None
         self.append_position_var = None
         self.preview_var = None
 
     def show(self):
-        """Display the sequence settings dialog"""
-        self.dialog = tk.Toplevel(self.parent)
+        self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title("Sequence Processing Settings")
-        self.dialog.geometry("700x500")
+        self.dialog.geometry("720x520")
         self.dialog.resizable(False, False)
-
-        # Make dialog modal
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
 
@@ -38,233 +67,145 @@ class SequenceSettingsDialog:
         self._load_current_settings()
         self._update_preview()
 
-        # Center the dialog
         self.dialog.update_idletasks()
-        x = (self.dialog.winfo_screenwidth() // 2) - (self.dialog.winfo_width() // 2)
-        y = (self.dialog.winfo_screenheight() // 2) - (self.dialog.winfo_height() // 2)
+        x = self.parent.winfo_x() + (self.parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
+        y = self.parent.winfo_y() + (self.parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
 
+        self.dialog.wait_window()
+
+    def _toast(self, message: str, kind: str = "info", duration: int = 2500):
+        _DialogToast(self.dialog, message, kind, duration).show()
+
     def _create_widgets(self):
-        """Create dialog widgets"""
-        main_frame = ttk.Frame(self.dialog, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main = ctk.CTkFrame(self.dialog, fg_color="transparent")
+        main.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # Title
-        title_label = ttk.Label(
-            main_frame,
-            text="🧬 Sequence Preprocessing Options",
-            font=("Arial", 14, "bold")
-        )
-        title_label.pack(pady=(0, 20))
+        ctk.CTkLabel(main, text="Sequence Preprocessing Options",
+                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 16))
 
-        # Append Sequence Section
-        append_frame = ttk.LabelFrame(main_frame, text="Append Sequence", padding="15")
-        append_frame.pack(fill=tk.X, pady=(0, 15))
+        # ── Append Section ───────────────────────────────────────────────
+        append_card = ctk.CTkFrame(main, corner_radius=10)
+        append_card.pack(fill=tk.X, pady=(0, 12))
 
-        # Enable/Disable checkbox
+        ctk.CTkLabel(append_card, text="Append Sequence",
+                     font=ctk.CTkFont(size=13, weight="bold")
+                     ).pack(anchor="w", padx=16, pady=(14, 6))
+
         self.append_enabled_var = tk.BooleanVar()
-        enable_check = ttk.Checkbutton(
-            append_frame,
-            text="Enable sequence appending",
-            variable=self.append_enabled_var,
-            command=self._on_enable_changed
-        )
-        enable_check.pack(anchor=tk.W, pady=(0, 10))
+        ctk.CTkCheckBox(append_card, text="Enable sequence appending",
+                        variable=self.append_enabled_var,
+                        command=self._on_enable_changed
+                        ).pack(anchor="w", padx=16, pady=(0, 8))
 
-        # Sequence input
-        seq_input_frame = ttk.Frame(append_frame)
-        seq_input_frame.pack(fill=tk.X, pady=(0, 10))
+        # Sequence input row
+        seq_row = ctk.CTkFrame(append_card, fg_color="transparent")
+        seq_row.pack(fill=tk.X, padx=16, pady=(0, 8))
 
-        ttk.Label(seq_input_frame, text="Sequence to append:").pack(side=tk.LEFT, padx=(0, 10))
-
+        ctk.CTkLabel(seq_row, text="Sequence:").pack(side=tk.LEFT, padx=(0, 8))
         self.append_sequence_var = tk.StringVar()
-        seq_entry = ttk.Entry(
-            seq_input_frame,
-            textvariable=self.append_sequence_var,
-            width=20
-        )
-        seq_entry.pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkEntry(seq_row, textvariable=self.append_sequence_var, width=140
+                     ).pack(side=tk.LEFT, padx=(0, 8))
+        ctk.CTkButton(seq_row, text="Validate", width=80,
+                      command=self._validate_sequence).pack(side=tk.LEFT)
 
-        # Validate button
-        validate_btn = ttk.Button(
-            seq_input_frame,
-            text="Validate",
-            command=self._validate_sequence,
-            width=10
-        )
-        validate_btn.pack(side=tk.LEFT)
+        self.append_sequence_var.trace_add("write", lambda *a: self._update_preview())
 
-        # Trace changes to update preview
-        self.append_sequence_var.trace_add("write", lambda *args: self._update_preview())
+        # Position
+        pos_row = ctk.CTkFrame(append_card, fg_color="transparent")
+        pos_row.pack(fill=tk.X, padx=16, pady=(0, 8))
 
-        # Position selection
-        position_frame = ttk.Frame(append_frame)
-        position_frame.pack(fill=tk.X, pady=(0, 10))
+        ctk.CTkLabel(pos_row, text="Position:").pack(side=tk.LEFT, padx=(0, 8))
+        self.append_position_var = tk.StringVar(value="end")
+        ctk.CTkRadioButton(pos_row, text="Start (5' end)",
+                           variable=self.append_position_var, value="start",
+                           command=self._update_preview).pack(side=tk.LEFT, padx=(0, 14))
+        ctk.CTkRadioButton(pos_row, text="End (3' end)",
+                           variable=self.append_position_var, value="end",
+                           command=self._update_preview).pack(side=tk.LEFT)
 
-        ttk.Label(position_frame, text="Append position:").pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkLabel(append_card,
+                     text="Tip: AUG is commonly appended to study RNA thermometer hairpin melting effects",
+                     font=ctk.CTkFont(size=11), text_color="gray"
+                     ).pack(anchor="w", padx=16, pady=(0, 14))
 
-        self.append_position_var = tk.StringVar()
+        #Preview Section
+        preview_card = ctk.CTkFrame(main, corner_radius=10)
+        preview_card.pack(fill=tk.BOTH, expand=True, pady=(0, 12))
 
-        start_radio = ttk.Radiobutton(
-            position_frame,
-            text="Start (5' end)",
-            variable=self.append_position_var,
-            value="start",
-            command=self._update_preview
-        )
-        start_radio.pack(side=tk.LEFT, padx=(0, 15))
-
-        end_radio = ttk.Radiobutton(
-            position_frame,
-            text="End (3' end)",
-            variable=self.append_position_var,
-            value="end",
-            command=self._update_preview
-        )
-        end_radio.pack(side=tk.LEFT)
-
-        # Info text
-        info_label = ttk.Label(
-            append_frame,
-            text="💡 Tip: AUG is commonly appended to study RNA thermometer hairpin melting effects",
-            font=("Arial", 9),
-            foreground="gray",
-            wraplength=550
-        )
-        info_label.pack(anchor=tk.W, pady=(5, 0))
-
-        # Preview Section
-        preview_frame = ttk.LabelFrame(main_frame, text="Preview", padding="15")
-        preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
-
-        preview_label = ttk.Label(
-            preview_frame,
-            text="Example transformation:",
-            font=("Arial", 10, "bold")
-        )
-        preview_label.pack(anchor=tk.W, pady=(0, 10))
+        ctk.CTkLabel(preview_card, text="Preview",
+                     font=ctk.CTkFont(size=13, weight="bold")
+                     ).pack(anchor="w", padx=16, pady=(14, 6))
 
         self.preview_var = tk.StringVar()
-        preview_text = ttk.Label(
-            preview_frame,
-            textvariable=self.preview_var,
-            font=("Courier", 10),
-            foreground="blue",
-            wraplength=550,
-            justify=tk.LEFT
-        )
-        preview_text.pack(anchor=tk.W)
+        ctk.CTkLabel(preview_card, textvariable=self.preview_var,
+                     font=ctk.CTkFont(family="Consolas", size=12),
+                     text_color=self.ACCENT, justify="left"
+                     ).pack(anchor="w", padx=16, pady=(0, 14))
 
         # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X)
+        btn_frame = ctk.CTkFrame(main, fg_color="transparent")
+        btn_frame.pack(fill=tk.X)
 
-        save_btn = ttk.Button(
-            button_frame,
-            text="💾 Save Settings",
-            command=self._save_settings,
-            width=20
-        )
-        save_btn.pack(side=tk.LEFT, padx=(0, 10))
-
-        cancel_btn = ttk.Button(
-            button_frame,
-            text="Cancel",
-            command=self.dialog.destroy,
-            width=15
-        )
-        cancel_btn.pack(side=tk.LEFT)
+        ctk.CTkButton(btn_frame, text="Save Settings", width=140,
+                      fg_color=self.ACCENT,
+                      command=self._save_settings).pack(side=tk.LEFT, padx=(0, 8))
+        ctk.CTkButton(btn_frame, text="Cancel", width=100,
+                      fg_color="gray40", hover_color="gray50",
+                      command=self.dialog.destroy).pack(side=tk.LEFT)
 
     def _load_current_settings(self):
-        """Load current settings from manager"""
-        seq_settings = self.settings_manager.settings.get("sequence_processing", {})
-
-        self.append_enabled_var.set(seq_settings.get("append_sequence_enabled", False))
-        self.append_sequence_var.set(seq_settings.get("append_sequence", "AUG"))
-        self.append_position_var.set(seq_settings.get("append_position", "end"))
+        seq = self.settings_manager.settings.get("sequence_processing", {})
+        self.append_enabled_var.set(seq.get("append_sequence_enabled", False))
+        self.append_sequence_var.set(seq.get("append_sequence", "AUG"))
+        self.append_position_var.set(seq.get("append_position", "end"))
 
     def _on_enable_changed(self):
-        """Handle enable/disable checkbox change"""
         self._update_preview()
 
     def _validate_sequence(self):
-        """Validate that sequence contains only valid RNA nucleotides"""
         sequence = self.append_sequence_var.get().upper()
-
         if not sequence:
-            messagebox.showwarning(
-                "Empty Sequence",
-                "Please enter a sequence to append."
-            )
+            self._toast("Please enter a sequence to append", "warning")
             return False
 
-        valid_chars = set("ACGU")
-        invalid_chars = set(sequence) - valid_chars
-
-        if invalid_chars:
-            messagebox.showerror(
-                "Invalid Sequence",
-                f"Sequence contains invalid characters: {', '.join(sorted(invalid_chars))}\n\n"
-                "Only A, C, G, U are allowed for RNA sequences."
-            )
+        invalid = set(sequence) - set("ACGU")
+        if invalid:
+            self._toast(f"Invalid characters: {', '.join(sorted(invalid))} — only A, C, G, U allowed", "error")
             return False
-        else:
-            messagebox.showinfo(
-                "Valid Sequence",
-                f"✓ Sequence '{sequence}' is valid!"
-            )
-            # Auto-uppercase
-            self.append_sequence_var.set(sequence)
-            return True
+
+        self._toast(f"Sequence '{sequence}' is valid", "success")
+        self.append_sequence_var.set(sequence)
+        return True
 
     def _update_preview(self):
-        """Update the preview text"""
         if not self.append_enabled_var.get():
-            self.preview_var.set(
-                "Sequence appending is disabled.\n\nOriginal: AUGCGAUUCGAGCUAG\nResult:   AUGCGAUUCGAGCUAG")
+            self.preview_var.set("Appending disabled.\n\n"
+                                "Original: AUGCGAUUCGAGCUAG\n"
+                                "Result:   AUGCGAUUCGAGCUAG")
             return
 
-        append_seq = self.append_sequence_var.get().upper()
-        position = self.append_position_var.get()
-
-        example_seq = "AUGCGAUUCGAGCUAG"
-
-        if position == "start":
-            result_seq = append_seq + example_seq
-        else:
-            result_seq = example_seq + append_seq
-
-        preview_text = f"Original: {example_seq}\nResult:   {result_seq}"
-
-        if append_seq:
-            # Highlight the appended part
-            if position == "start":
-                preview_text += f"\n\nAppended '{append_seq}' at 5' end (start)"
-            else:
-                preview_text += f"\n\nAppended '{append_seq}' at 3' end (end)"
-
-        self.preview_var.set(preview_text)
+        seq = self.append_sequence_var.get().upper()
+        pos = self.append_position_var.get()
+        example = "AUGCGAUUCGAGCUAG"
+        result = (seq + example) if pos == "start" else (example + seq)
+        text = f"Original: {example}\nResult:   {result}"
+        if seq:
+            end_label = "5' end (start)" if pos == "start" else "3' end (end)"
+            text += f"\n\nAppended '{seq}' at {end_label}"
+        self.preview_var.set(text)
 
     def _save_settings(self):
-        """Save settings and close dialog"""
-        # Validate sequence if enabled
         if self.append_enabled_var.get():
             if not self._validate_sequence():
                 return
 
-        # Update settings
         self.settings_manager.settings["sequence_processing"] = {
             "append_sequence_enabled": self.append_enabled_var.get(),
             "append_sequence": self.append_sequence_var.get().upper(),
-            "append_position": self.append_position_var.get()
+            "append_position": self.append_position_var.get(),
         }
-
-        # Save to file
         self.settings_manager.save_settings()
-
-        messagebox.showinfo(
-            "Settings Saved",
-            "Sequence processing settings have been saved successfully!"
-        )
-
-        self.dialog.destroy()
+        self._toast("Sequence processing settings saved", "success")
+        # Close dialog after short delay so user sees the toast
+        self.dialog.after(1200, self.dialog.destroy)

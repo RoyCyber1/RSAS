@@ -1,371 +1,358 @@
+"""
+Settings dialogs for analysis parameters and performance.
+"""
+
+import os
 import tkinter as tk
-from tkinter import ttk, messagebox
+import customtkinter as ctk
+
+from settings_manager import DEFAULT_TEMPERATURES
+
+ACCENT = "#2980b9"
 
 
-class SettingsDialog:
-    """Dialog for configuring analysis parameters"""
+class AnalysisSettingsDialog:
+    """Hairpin detection method + folding temperatures."""
 
-    def __init__(self, parent, current_settings=None):
+    MAX_TEMPS = 5
+
+    def __init__(self, parent, current_settings=None, csv_settings_manager=None):
         self.result = None
-        self.dialog = tk.Toplevel(parent)
-        self.dialog.title("Analysis Settings")
-        self.dialog.geometry("600x700")  # ✨ Made taller
-        self.dialog.resizable(False, False)
+        self.csv_settings_manager = csv_settings_manager
 
-        # Make dialog modal
+        self.dialog = ctk.CTkToplevel(parent)
+        self.dialog.title("Analysis Settings")
+        self.dialog.geometry("620x560")
+        self.dialog.resizable(False, False)
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
-        # Default settings
         self.settings = current_settings or {
-            # Hairpin settings
-            'au_min': 50, 'au_max': 60,
-            'gc_min': 0, 'gc_max': 30,
-            'gu_min': 15, 'gu_max': 25,
-            'mfe_25_min': -17, 'mfe_25_max': -10,
-            'mfe_37_min': -13, 'mfe_37_max': -6,
-            'mfe_42_min': -7, 'mfe_42_max': -2,
-
-            # ✨ NEW: Original sequence settings
-            'orig_mfe_25_min': -30, 'orig_mfe_25_max': -10,
-            'orig_mfe_37_min': -25, 'orig_mfe_37_max': -5,
-            'orig_mfe_42_min': -20, 'orig_mfe_42_max': -2,
-            'orig_au_min': 0, 'orig_au_max': 100,
-            'orig_gc_min': 0, 'orig_gc_max': 100,
-            'orig_gu_min': 0, 'orig_gu_max': 100,
+            'hairpin_detection_method': 'terminal',
         }
 
         self._create_widgets()
 
-        # Center dialog on parent
+        # Center on parent
         self.dialog.update_idletasks()
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
-        """Create all dialog widgets"""
-        main_frame = ttk.Frame(self.dialog, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main = ctk.CTkFrame(self.dialog, fg_color="transparent")
+        main.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # Title
-        title_label = ttk.Label(
-            main_frame,
-            text="Configure Analysis Ranges",
-            font=("Arial", 12, "bold")
-        )
-        title_label.pack(pady=(0, 20))
+        ctk.CTkLabel(main, text="Analysis Settings",
+                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 14))
 
-        # Create notebook for organized tabs
-        notebook = ttk.Notebook(main_frame)
-        notebook.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        tabs = ctk.CTkTabview(main, corner_radius=10)
+        tabs.pack(fill=tk.BOTH, expand=True)
 
-        # Base Pair Composition Tab
-        bp_frame = ttk.Frame(notebook, padding="15")
-        notebook.add(bp_frame, text="Base Pair Composition")
-        self._create_bp_settings(bp_frame)
+        self._create_detection_tab(tabs.add("Hairpin Detection"))
+        self._create_temps_tab(tabs.add("Folding Temperatures"))
 
-        # MFE Tab
-        mfe_frame = ttk.Frame(notebook, padding="15")
-        notebook.add(mfe_frame, text="MFE at Temperatures")
-        self._create_mfe_settings(mfe_frame)
+        # Buttons
+        btn_frame = ctk.CTkFrame(main, fg_color="transparent")
+        btn_frame.pack(fill=tk.X, pady=(14, 0))
 
-        # Button frame
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
+        ctk.CTkButton(btn_frame, text="Reset Defaults", width=130,
+                      fg_color="gray40", hover_color="gray50",
+                      command=self._reset_defaults).pack(side=tk.LEFT)
+        ctk.CTkButton(btn_frame, text="Cancel", width=90,
+                      fg_color="gray40", hover_color="gray50",
+                      command=self.dialog.destroy).pack(side=tk.RIGHT, padx=(8, 0))
+        ctk.CTkButton(btn_frame, text="Save", width=90,
+                      fg_color=ACCENT,
+                      command=self._save_settings).pack(side=tk.RIGHT)
 
-        ttk.Button(
-            button_frame,
-            text="Reset to Defaults",
-            command=self._reset_defaults
-        ).pack(side=tk.LEFT, padx=5)
+    def _create_detection_tab(self, tab):
+        ctk.CTkLabel(tab, text="Hairpin Detection Method:",
+                     font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(8, 12))
 
-        ttk.Button(
-            button_frame,
-            text="Cancel",
-            command=self.dialog.destroy
-        ).pack(side=tk.RIGHT, padx=5)
+        self.hairpin_method_var = tk.StringVar(
+            value=self.settings.get('hairpin_detection_method', 'terminal'))
 
-        ttk.Button(
-            button_frame,
-            text="Save",
-            command=self._save_settings
-        ).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkRadioButton(tab, text="Terminal Hairpin (original method)",
+                           variable=self.hairpin_method_var, value="terminal"
+                           ).pack(anchor="w", pady=(0, 2))
+        ctk.CTkLabel(tab,
+                     text="Finds the rightmost stem-loop in the full structure.\n"
+                          "This is the original algorithm used in RSAS.",
+                     font=ctk.CTkFont(size=11), text_color="gray"
+                     ).pack(anchor="w", padx=(28, 0), pady=(0, 14))
 
-    def _create_range_input(self, parent, label_text, min_key, max_key, row):
-        """Create a min-max range input"""
-        ttk.Label(parent, text=label_text, font=("Arial", 10)).grid(
-            row=row, column=0, sticky=tk.W, pady=8
-        )
+        ctk.CTkRadioButton(tab, text="RBS-Containing Hairpin (new method)",
+                           variable=self.hairpin_method_var, value="rbs_based"
+                           ).pack(anchor="w", pady=(0, 2))
+        ctk.CTkLabel(tab,
+                     text="Finds the hairpin that sequesters the RBS (Shine-Dalgarno).\n"
+                          "Falls back to AUG-containing hairpin for fourU-type thermometers.\n"
+                          "If hairpin > 80 nt, cuts a window around the RBS instead.\n"
+                          "Typical thermometer hairpin: 20-80 nt.",
+                     font=ctk.CTkFont(size=11), text_color="gray"
+                     ).pack(anchor="w", padx=(28, 0), pady=(0, 14))
 
-        # Min input
-        ttk.Label(parent, text="Min:").grid(row=row, column=1, sticky=tk.E, padx=(10, 5))
-        min_var = tk.DoubleVar(value=self.settings.get(min_key, 0))
-        min_entry = ttk.Entry(parent, textvariable=min_var, width=10)
-        min_entry.grid(row=row, column=2, sticky=tk.W)
+        ctk.CTkLabel(tab,
+                     text="Both methods feed the extracted hairpin into the same downstream\n"
+                          "analysis pipeline (MFE, composition, quality score, etc.).",
+                     font=ctk.CTkFont(size=11), text_color="#666666"
+                     ).pack(anchor="w", pady=(10, 0))
 
-        # Max input
-        ttk.Label(parent, text="Max:").grid(row=row, column=3, sticky=tk.E, padx=(15, 5))
-        max_var = tk.DoubleVar(value=self.settings.get(max_key, 100))
-        max_entry = ttk.Entry(parent, textvariable=max_var, width=10)
-        max_entry.grid(row=row, column=4, sticky=tk.W)
+        ctk.CTkLabel(tab,
+                     text="Note: MFE/composition ranges are now configured in the\n"
+                          "Terminal Hairpin Quality Score Builder.",
+                     font=ctk.CTkFont(size=11), text_color="#888888"
+                     ).pack(anchor="w", pady=(20, 0))
 
-        return min_var, max_var
+    def _create_temps_tab(self, tab):
+        ctk.CTkLabel(tab, text="Folding Temperatures:",
+                     font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(8, 4))
 
-    def _create_bp_settings(self, parent):
-        """Create base pair composition settings"""
-        # ✨ Hairpin Section
-        ttk.Label(
-            parent,
-            text="Hairpin Base Pair Percentages:",
-            font=("Arial", 10, "bold")
-        ).grid(row=0, column=0, columnspan=5, sticky=tk.W, pady=(0, 10))
+        ctk.CTkLabel(tab,
+                     text="Configure the temperatures (\u00b0C) used for RNA folding.\n"
+                          "The first (lowest) temperature is the base temperature for\n"
+                          "hairpin detection and the primary structure fold.\n"
+                          "You can set 1 to 5 unique temperatures.",
+                     font=ctk.CTkFont(size=11), text_color="gray"
+                     ).pack(anchor="w", pady=(0, 10))
 
-        # Hairpin AU pairs
-        self.au_min_var, self.au_max_var = self._create_range_input(
-            parent, "Hairpin AU Pairs (%)", 'au_min', 'au_max', 1
-        )
+        # Load current temps
+        if self.csv_settings_manager:
+            current_temps = self.csv_settings_manager.get_temperatures()
+        else:
+            current_temps = list(DEFAULT_TEMPERATURES)
 
-        # Hairpin GC pairs
-        self.gc_min_var, self.gc_max_var = self._create_range_input(
-            parent, "Hairpin GC Pairs (%)", 'gc_min', 'gc_max', 2
-        )
+        # Container for temperature entry rows
+        self._temp_rows_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        self._temp_rows_frame.pack(fill=tk.X, pady=(0, 8))
 
-        # Hairpin GU pairs
-        self.gu_min_var, self.gu_max_var = self._create_range_input(
-            parent, "Hairpin GU Pairs (%)", 'gu_min', 'gu_max', 3
-        )
+        self._temp_entries = []  # list of (frame, entry_var) tuples
 
-        # Info label
-        info_label = ttk.Label(
-            parent,
-            text="💡 Typical RNA thermometer hairpin ranges:\nAU: 50-60%, GC: 0-30%, GU: 15-25%",
-            font=("Arial", 8),
-            foreground="gray"
-        )
-        info_label.grid(row=4, column=0, columnspan=5, sticky=tk.W, pady=(10, 0))
+        for t in current_temps:
+            self._add_temp_row(t)
 
-        # ✨ Separator
-        ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=5, column=0, columnspan=5, sticky=(tk.W, tk.E), pady=20
-        )
+        # Add / Remove buttons
+        btn_row = ctk.CTkFrame(tab, fg_color="transparent")
+        btn_row.pack(anchor="w", pady=(4, 10))
 
-        # ✨ NEW: Original Sequence Section
-        ttk.Label(
-            parent,
-            text="Original Sequence Base Pair Percentages:",
-            font=("Arial", 10, "bold")
-        ).grid(row=6, column=0, columnspan=5, sticky=tk.W, pady=(0, 10))
+        self._add_temp_btn = ctk.CTkButton(
+            btn_row, text="+ Add Temperature", width=140,
+            fg_color="#27ae60", hover_color="#2ecc71",
+            command=self._add_temp_row_default)
+        self._add_temp_btn.pack(side=tk.LEFT, padx=(0, 8))
 
-        # Original AU pairs
-        self.orig_au_min_var, self.orig_au_max_var = self._create_range_input(
-            parent, "Original AU Pairs (%)", 'orig_au_min', 'orig_au_max', 7
-        )
+        self._temp_status_label = ctk.CTkLabel(
+            btn_row, text="", font=ctk.CTkFont(size=11), text_color="gray")
+        self._temp_status_label.pack(side=tk.LEFT)
 
-        # Original GC pairs
-        self.orig_gc_min_var, self.orig_gc_max_var = self._create_range_input(
-            parent, "Original GC Pairs (%)", 'orig_gc_min', 'orig_gc_max', 8
-        )
+        self._update_temp_buttons()
 
-        # Original GU pairs
-        self.orig_gu_min_var, self.orig_gu_max_var = self._create_range_input(
-            parent, "Original GU Pairs (%)", 'orig_gu_min', 'orig_gu_max', 9
-        )
+        # Info
+        ctk.CTkLabel(tab,
+                     text="Values are sorted automatically on save. Duplicate values\n"
+                          "are merged. Temperatures must be positive numbers.\n\n"
+                          "Default: 25, 37, 42",
+                     font=ctk.CTkFont(size=11), text_color="#666666",
+                     justify="left").pack(anchor="w", pady=(6, 0))
 
-        # Info label
-        info_label2 = ttk.Label(
-            parent,
-            text="💡 Wide ranges (0-100) effectively disable filtering",
-            font=("Arial", 8),
-            foreground="gray"
-        )
-        info_label2.grid(row=10, column=0, columnspan=5, sticky=tk.W, pady=(10, 0))
+    def _add_temp_row(self, value=37):
+        row = ctk.CTkFrame(self._temp_rows_frame, fg_color="transparent")
+        row.pack(fill=tk.X, pady=2)
 
-    def _create_mfe_settings(self, parent):
-        """Create MFE temperature settings"""
-        # ✨ Hairpin Section
-        ttk.Label(
-            parent,
-            text="Hairpin MFE Ranges (kcal/mol):",
-            font=("Arial", 10, "bold")
-        ).grid(row=0, column=0, columnspan=5, sticky=tk.W, pady=(0, 10))
+        var = tk.StringVar(value=str(value))
+        idx = len(self._temp_entries) + 1
 
-        # Hairpin MFE at 25°C
-        self.mfe_25_min_var, self.mfe_25_max_var = self._create_range_input(
-            parent, "Hairpin MFE at 25°C", 'mfe_25_min', 'mfe_25_max', 1
-        )
+        ctk.CTkLabel(row, text=f"T{idx}:", font=ctk.CTkFont(size=12),
+                     width=30).pack(side=tk.LEFT, padx=(0, 4))
+        entry = ctk.CTkEntry(row, textvariable=var, width=80)
+        entry.pack(side=tk.LEFT, padx=(0, 4))
+        ctk.CTkLabel(row, text="\u00b0C", font=ctk.CTkFont(size=12)).pack(side=tk.LEFT)
 
-        # Hairpin MFE at 37°C
-        self.mfe_37_min_var, self.mfe_37_max_var = self._create_range_input(
-            parent, "Hairpin MFE at 37°C", 'mfe_37_min', 'mfe_37_max', 2
-        )
+        # Remove button
+        remove_btn = ctk.CTkButton(
+            row, text="\u2715", width=30, height=24,
+            fg_color="gray40", hover_color="#c0392b",
+            command=lambda r=row, v=var: self._remove_temp_row(r, v))
+        remove_btn.pack(side=tk.LEFT, padx=(10, 0))
 
-        # Hairpin MFE at 42°C
-        self.mfe_42_min_var, self.mfe_42_max_var = self._create_range_input(
-            parent, "Hairpin MFE at 42°C", 'mfe_42_min', 'mfe_42_max', 3
-        )
+        self._temp_entries.append((row, var))
+        self._update_temp_buttons()
 
-        # Info label
-        info_label = ttk.Label(
-            parent,
-            text="💡 Typical RNA thermometer hairpin MFE ranges:\n"
-                 "25°C: -17 to -10, 37°C: -13 to -6, 42°C: -7 to -2",
-            font=("Arial", 8),
-            foreground="gray"
-        )
-        info_label.grid(row=4, column=0, columnspan=5, sticky=tk.W, pady=(10, 0))
+    def _add_temp_row_default(self):
+        if len(self._temp_entries) >= self.MAX_TEMPS:
+            return
+        self._add_temp_row(37)
 
-        # ✨ Separator
-        ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=5, column=0, columnspan=5, sticky=(tk.W, tk.E), pady=20
-        )
+    def _remove_temp_row(self, row_frame, var):
+        if len(self._temp_entries) <= 1:
+            return  # Must keep at least one
+        self._temp_entries = [(r, v) for r, v in self._temp_entries
+                              if r is not row_frame]
+        row_frame.destroy()
+        # Re-number labels
+        for i, (r, v) in enumerate(self._temp_entries):
+            for child in r.winfo_children():
+                if isinstance(child, ctk.CTkLabel) and child.cget("text").startswith("T"):
+                    child.configure(text=f"T{i + 1}:")
+                    break
+        self._update_temp_buttons()
 
-        # ✨ NEW: Original Sequence Section
-        ttk.Label(
-            parent,
-            text="Original Sequence MFE Ranges (kcal/mol):",
-            font=("Arial", 10, "bold")
-        ).grid(row=6, column=0, columnspan=5, sticky=tk.W, pady=(0, 10))
+    def _update_temp_buttons(self):
+        n = len(self._temp_entries)
+        if hasattr(self, '_add_temp_btn'):
+            if n >= self.MAX_TEMPS:
+                self._add_temp_btn.configure(state="disabled")
+            else:
+                self._add_temp_btn.configure(state="normal")
+        if hasattr(self, '_temp_status_label'):
+            self._temp_status_label.configure(text=f"{n}/{self.MAX_TEMPS} temperatures")
 
-        # Original MFE at 25°C
-        self.orig_mfe_25_min_var, self.orig_mfe_25_max_var = self._create_range_input(
-            parent, "Original MFE at 25°C", 'orig_mfe_25_min', 'orig_mfe_25_max', 7
-        )
-
-        # Original MFE at 37°C
-        self.orig_mfe_37_min_var, self.orig_mfe_37_max_var = self._create_range_input(
-            parent, "Original MFE at 37°C", 'orig_mfe_37_min', 'orig_mfe_37_max', 8
-        )
-
-        # Original MFE at 42°C
-        self.orig_mfe_42_min_var, self.orig_mfe_42_max_var = self._create_range_input(
-            parent, "Original MFE at 42°C", 'orig_mfe_42_min', 'orig_mfe_42_max', 9
-        )
-
-        # Info label
-        info_label2 = ttk.Label(
-            parent,
-            text="💡 Original sequence MFE is typically more negative than hairpin alone",
-            font=("Arial", 8),
-            foreground="gray"
-        )
-        info_label2.grid(row=10, column=0, columnspan=5, sticky=tk.W, pady=(10, 0))
-
-    def _validate_settings(self):
-        """Validate that min < max for all ranges"""
-        checks = [
-            # Hairpin settings
-            (self.au_min_var.get(), self.au_max_var.get(), "Hairpin AU%"),
-            (self.gc_min_var.get(), self.gc_max_var.get(), "Hairpin GC%"),
-            (self.gu_min_var.get(), self.gu_max_var.get(), "Hairpin GU%"),
-            (self.mfe_25_min_var.get(), self.mfe_25_max_var.get(), "Hairpin MFE at 25°C"),
-            (self.mfe_37_min_var.get(), self.mfe_37_max_var.get(), "Hairpin MFE at 37°C"),
-            (self.mfe_42_min_var.get(), self.mfe_42_max_var.get(), "Hairpin MFE at 42°C"),
-
-            # ✨ NEW: Original sequence settings
-            (self.orig_mfe_25_min_var.get(), self.orig_mfe_25_max_var.get(), "Original MFE at 25°C"),
-            (self.orig_mfe_37_min_var.get(), self.orig_mfe_37_max_var.get(), "Original MFE at 37°C"),
-            (self.orig_mfe_42_min_var.get(), self.orig_mfe_42_max_var.get(), "Original MFE at 42°C"),
-            (self.orig_au_min_var.get(), self.orig_au_max_var.get(), "Original AU%"),
-            (self.orig_gc_min_var.get(), self.orig_gc_max_var.get(), "Original GC%"),
-            (self.orig_gu_min_var.get(), self.orig_gu_max_var.get(), "Original GU%"),
-        ]
-
-        for min_val, max_val, name in checks:
-            if min_val >= max_val:
-                messagebox.showerror(
-                    "Invalid Range",
-                    f"{name}: Minimum must be less than maximum"
-                )
-                return False
-
-        return True
+    def _get_temps_from_ui(self):
+        """Parse temp entries, deduplicate, sort. Returns list or None."""
+        raw = []
+        for _, var in self._temp_entries:
+            txt = var.get().strip()
+            if not txt:
+                continue
+            try:
+                val = float(txt)
+                if val <= 0:
+                    return None  # Non-positive
+                raw.append(int(val) if val == int(val) else val)
+            except ValueError:
+                return None
+        if not raw:
+            return None
+        # Deduplicate and sort
+        temps = sorted(set(int(t) for t in raw))
+        if len(temps) < 1 or len(temps) > self.MAX_TEMPS:
+            return None
+        return temps
 
     def _save_settings(self):
-        """Save settings and close dialog"""
-        if not self._validate_settings():
+        temps = self._get_temps_from_ui()
+        if temps is None:
+            if hasattr(self, '_temp_status_label'):
+                self._temp_status_label.configure(
+                    text="Invalid: enter 1-5 unique positive numbers",
+                    text_color="#e74c3c")
             return
 
-        self.result = {
-            # Hairpin settings
-            'au_min': self.au_min_var.get(),
-            'au_max': self.au_max_var.get(),
-            'gc_min': self.gc_min_var.get(),
-            'gc_max': self.gc_max_var.get(),
-            'gu_min': self.gu_min_var.get(),
-            'gu_max': self.gu_max_var.get(),
-            'mfe_25_min': self.mfe_25_min_var.get(),
-            'mfe_25_max': self.mfe_25_max_var.get(),
-            'mfe_37_min': self.mfe_37_min_var.get(),
-            'mfe_37_max': self.mfe_37_max_var.get(),
-            'mfe_42_min': self.mfe_42_min_var.get(),
-            'mfe_42_max': self.mfe_42_max_var.get(),
+        if self.csv_settings_manager:
+            # Save folding temperatures
+            self.csv_settings_manager.set_temperatures(temps)
+            self.csv_settings_manager.save_settings()
 
-            # ✨ NEW: Original sequence settings
-            'orig_mfe_25_min': self.orig_mfe_25_min_var.get(),
-            'orig_mfe_25_max': self.orig_mfe_25_max_var.get(),
-            'orig_mfe_37_min': self.orig_mfe_37_min_var.get(),
-            'orig_mfe_37_max': self.orig_mfe_37_max_var.get(),
-            'orig_mfe_42_min': self.orig_mfe_42_min_var.get(),
-            'orig_mfe_42_max': self.orig_mfe_42_max_var.get(),
-            'orig_au_min': self.orig_au_min_var.get(),
-            'orig_au_max': self.orig_au_max_var.get(),
-            'orig_gc_min': self.orig_gc_min_var.get(),
-            'orig_gc_max': self.orig_gc_max_var.get(),
-            'orig_gu_min': self.orig_gu_min_var.get(),
-            'orig_gu_max': self.orig_gu_max_var.get(),
+        self.result = {
+            'hairpin_detection_method': self.hairpin_method_var.get(),
+            'folding_temperatures': temps,
         }
         self.dialog.destroy()
 
     def _reset_defaults(self):
-        """Reset all settings to default values"""
-        defaults = {
-            # Hairpin defaults
-            'au_min': 50, 'au_max': 60,
-            'gc_min': 0, 'gc_max': 30,
-            'gu_min': 15, 'gu_max': 25,
-            'mfe_25_min': -17, 'mfe_25_max': -10,
-            'mfe_37_min': -13, 'mfe_37_max': -6,
-            'mfe_42_min': -7, 'mfe_42_max': -2,
+        self.hairpin_method_var.set('terminal')
 
-            # ✨ NEW: Original sequence defaults
-            'orig_mfe_25_min': -30, 'orig_mfe_25_max': -10,
-            'orig_mfe_37_min': -25, 'orig_mfe_37_max': -5,
-            'orig_mfe_42_min': -20, 'orig_mfe_42_max': -2,
-            'orig_au_min': 0, 'orig_au_max': 100,
-            'orig_gc_min': 0, 'orig_gc_max': 100,
-            'orig_gu_min': 0, 'orig_gu_max': 100,
-        }
-
-        # Update hairpin variables
-        self.au_min_var.set(defaults['au_min'])
-        self.au_max_var.set(defaults['au_max'])
-        self.gc_min_var.set(defaults['gc_min'])
-        self.gc_max_var.set(defaults['gc_max'])
-        self.gu_min_var.set(defaults['gu_min'])
-        self.gu_max_var.set(defaults['gu_max'])
-        self.mfe_25_min_var.set(defaults['mfe_25_min'])
-        self.mfe_25_max_var.set(defaults['mfe_25_max'])
-        self.mfe_37_min_var.set(defaults['mfe_37_min'])
-        self.mfe_37_max_var.set(defaults['mfe_37_max'])
-        self.mfe_42_min_var.set(defaults['mfe_42_min'])
-        self.mfe_42_max_var.set(defaults['mfe_42_max'])
-
-        # ✨ NEW: Update original sequence variables
-        self.orig_mfe_25_min_var.set(defaults['orig_mfe_25_min'])
-        self.orig_mfe_25_max_var.set(defaults['orig_mfe_25_max'])
-        self.orig_mfe_37_min_var.set(defaults['orig_mfe_37_min'])
-        self.orig_mfe_37_max_var.set(defaults['orig_mfe_37_max'])
-        self.orig_mfe_42_min_var.set(defaults['orig_mfe_42_min'])
-        self.orig_mfe_42_max_var.set(defaults['orig_mfe_42_max'])
-        self.orig_au_min_var.set(defaults['orig_au_min'])
-        self.orig_au_max_var.set(defaults['orig_au_max'])
-        self.orig_gc_min_var.set(defaults['orig_gc_min'])
-        self.orig_gc_max_var.set(defaults['orig_gc_max'])
-        self.orig_gu_min_var.set(defaults['orig_gu_min'])
-        self.orig_gu_max_var.set(defaults['orig_gu_max'])
+        # Reset temperatures
+        for row_frame, _ in self._temp_entries:
+            row_frame.destroy()
+        self._temp_entries.clear()
+        for t in DEFAULT_TEMPERATURES:
+            self._add_temp_row(t)
 
     def show(self):
-        """Show dialog and wait for result"""
         self.dialog.wait_window()
         return self.result
+
+
+class PerformanceSettingsDialog:
+    """CPU core count for parallel processing."""
+
+    def __init__(self, parent, csv_settings_manager=None):
+        self.result = None
+        self.csv_settings_manager = csv_settings_manager
+
+        self.dialog = ctk.CTkToplevel(parent)
+        self.dialog.title("Performance Settings")
+        self.dialog.geometry("480x400")
+        self.dialog.resizable(False, False)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+
+        self._create_widgets()
+
+        # Center on parent
+        self.dialog.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
+        self.dialog.geometry(f"+{x}+{y}")
+
+    def _create_widgets(self):
+        main = ctk.CTkFrame(self.dialog, fg_color="transparent")
+        main.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(main, text="Performance Settings",
+                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 14))
+
+        # CPU cores
+        ctk.CTkLabel(main, text="Parallel Processing:",
+                     font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(8, 14))
+
+        self.system_cores = os.cpu_count() or 1
+        current_cores = 1
+        if self.csv_settings_manager:
+            perf = self.csv_settings_manager.settings.get("performance_settings", {})
+            current_cores = max(1, perf.get("num_cpu_cores", 1))
+
+        row = ctk.CTkFrame(main, fg_color="transparent")
+        row.pack(anchor="w", pady=4)
+        ctk.CTkLabel(row, text="CPU Cores:", font=ctk.CTkFont(size=12)).pack(side=tk.LEFT, padx=(0, 10))
+
+        self.cpu_cores_var = tk.IntVar(value=current_cores)
+        ctk.CTkEntry(row, textvariable=self.cpu_cores_var, width=60).pack(side=tk.LEFT)
+
+        ctk.CTkLabel(main,
+                     text=f"Your system has {self.system_cores} core(s). You can use 1 to {self.system_cores}.",
+                     font=ctk.CTkFont(size=11), text_color="gray").pack(anchor="w", pady=(6, 2))
+
+        ctk.CTkLabel(main,
+                     text="Recommendation: Use 1 for small runs; for 100+ sequences, try 2-4 cores.",
+                     font=ctk.CTkFont(size=11), text_color="gray").pack(anchor="w", pady=(0, 14))
+
+        ctk.CTkLabel(main,
+                     text="Parallel processing distributes sequences across multiple\n"
+                          "CPU cores for faster analysis. Each core processes sequences\n"
+                          "independently using the same folding parameters.\n\n"
+                          "Default is 1 core (sequential). Increase to 2 or more for\n"
+                          "parallel runs. More cores = faster but higher memory usage.",
+                     font=ctk.CTkFont(size=11), text_color="#666666",
+                     justify="left").pack(anchor="w")
+
+        # Buttons
+        btn_frame = ctk.CTkFrame(main, fg_color="transparent")
+        btn_frame.pack(fill=tk.X, pady=(14, 0))
+
+        ctk.CTkButton(btn_frame, text="Cancel", width=90,
+                      fg_color="gray40", hover_color="gray50",
+                      command=self.dialog.destroy).pack(side=tk.RIGHT, padx=(8, 0))
+        ctk.CTkButton(btn_frame, text="Save", width=90,
+                      fg_color=ACCENT,
+                      command=self._save_settings).pack(side=tk.RIGHT)
+
+    def _save_settings(self):
+        num_cores = max(1, min(self.cpu_cores_var.get(), self.system_cores))
+
+        if self.csv_settings_manager:
+            perf = self.csv_settings_manager.settings.setdefault("performance_settings", {})
+            perf["num_cpu_cores"] = num_cores
+            self.csv_settings_manager.save_settings()
+
+        self.result = {'num_cpu_cores': num_cores}
+        self.dialog.destroy()
+
+    def show(self):
+        self.dialog.wait_window()
+        return self.result
+
+
+SettingsDialogModern = AnalysisSettingsDialog

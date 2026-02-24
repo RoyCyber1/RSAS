@@ -8,7 +8,6 @@ __pycache__/
 dist/
 build/
 *.egg
-*.spec
 
 # Virtual environments
 env/
@@ -27,23 +26,26 @@ ENV/
 .ipynb_checkpoints/
 *.ipynb
 
-# Data - Don't commit output files
+# Data - don't commit user input/output files
 Data/Outputs/*
 !Data/Outputs/.gitkeep
 Data/Inputs/*.fasta
+Data/Inputs/*.fa
 Data/Inputs/*.csv
 Data/Inputs/*.tsv
-*.csv
+Data/Inputs/*.txt
+
+# User-generated output
 *.svg
 *.png
 
-# Built applications - Don't commit (too large)
+# Built applications (too large for git)
 *.zip
 *.dmg
 *.exe
 *.app/
 
-# OS
+# OS junk
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -55,8 +57,13 @@ Desktop.ini
 *.log
 *.cache
 
-# PyInstaller
-*.spec
+# Runtime settings / state files (generated on first run)
+csv_output_settings.json
+.recent_files.json
+
+# Claude Code
+.claude/
+*.claude
 
 # Test outputs
 test_output/

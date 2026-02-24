@@ -1,5 +1,6 @@
 """
-Build script for creating standalone executables
+Build script for creating standalone RSAS executables.
+Uses PyInstaller to package everything into a single distributable app.
 """
 
 import PyInstaller.__main__
@@ -9,89 +10,76 @@ import os
 
 
 def build_app():
-    """Build standalone application"""
-
     system = platform.system()
 
-    # Find main.py location
+    # Find entry point
     if os.path.exists('main.py'):
         main_script = 'main.py'
     elif os.path.exists('RnaThermofinder/main.py'):
         main_script = 'RnaThermofinder/main.py'
     else:
-        print("❌ Error: Cannot find main.py")
+        print("Error: Cannot find main.py")
         sys.exit(1)
 
-    print(f"✓ Found entry point: {main_script}")
+    print(f"Entry point: {main_script}")
 
-    # Base options for all platforms
     base_options = [
         main_script,
-        '--name=RNAThermoFinder',
+        '--name=RSAS',
         '--clean',
         '--noconfirm',
-
-        # Hidden imports
         '--hidden-import=RNA',
         '--hidden-import=tkinter',
-        '--hidden-import=pandas',
+        '--hidden-import=customtkinter',
         '--hidden-import=numpy',
         '--hidden-import=Bio',
         '--hidden-import=PIL',
         '--collect-all=RnaThermofinder',
-
-        # Exclude unnecessary
+        '--collect-all=customtkinter',
         '--exclude-module=matplotlib',
         '--exclude-module=IPython',
         '--exclude-module=pytest',
         '--exclude-module=jupyter',
     ]
 
-    # Platform-specific options
-    if system == "Darwin":  # macOS
+    if system == "Darwin":
         print("Building for macOS...")
         options = base_options + [
-            '--windowed',  # Creates .app bundle
-            '--onedir',  # Recommended for macOS (not onefile)
-            '--osx-bundle-identifier=com.yourname.rnathermofinder',
+            '--windowed',
+            '--onedir',
+            '--osx-bundle-identifier=com.royvaknin.rsas',
         ]
-        output_msg = "open dist/RNAThermoFinder.app"
+        output_msg = "open dist/RSAS.app"
 
     elif system == "Windows":
         print("Building for Windows...")
         options = base_options + [
-            '--windowed',  # No console
-            '--onefile',  # Single .exe (works fine on Windows)
-            # '--icon=icon.ico',  # Add if you have an icon
+            '--windowed',
+            '--onefile',
         ]
-        output_msg = "dist\\RNAThermoFinder.exe"
+        output_msg = "dist\\RSAS.exe"
 
-    else:  # Linux
+    else:
         print("Building for Linux...")
         options = base_options + [
-            '--onefile',  # Single executable
+            '--onefile',
         ]
-        output_msg = "./dist/RNAThermoFinder"
+        output_msg = "./dist/RSAS"
 
-    print(f"This may take several minutes...")
+    print("This may take several minutes...")
 
     try:
         PyInstaller.__main__.run(options)
-        print("\n" + "=" * 60)
-        print("✅ Build complete!")
-        print("=" * 60)
-        print(f"\nTo run: {output_msg}")
-
+        print(f"\nBuild complete! To run: {output_msg}")
         if system == "Darwin":
-            print("\nYour .app is in: dist/RNAThermoFinder.app")
-            print("To distribute: Compress it to a .zip file")
+            print("Your .app is in: dist/RSAS.app")
+            print("To distribute: compress it to a .zip file")
         elif system == "Windows":
-            print("\nYour .exe is in: dist/RNAThermoFinder.exe")
+            print("Your .exe is in: dist/RSAS.exe")
         else:
-            print("\nYour executable is in: dist/RNAThermoFinder")
-
+            print("Your executable is in: dist/RSAS")
     except Exception as e:
-        print(f"\n❌ Build failed: {e}")
+        print(f"\nBuild failed: {e}")
         sys.exit(1)
 
 

@@ -1,9 +1,9 @@
 """
-RNA Thermometer Finder
-A tool for identifying and analyzing RNA thermometers in bacterial sequences
+RSAS: RNA Structure Analysis Suite
+A tool for identifying and analyzing RNA structures in bacterial sequences
 """
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 __author__ = "Roy Vaknin"
 __email__ = "roycyber13@gmail.com"
 

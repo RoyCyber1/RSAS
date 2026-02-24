@@ -1,216 +1,205 @@
-# RNA Thermometer Finder v2.0
+# RSAS: RNA Structure Analysis Suite v3.0
 
-A Python tool for identifying and analyzing RNA thermometers in bacterial sequences with advanced filtering and quality scoring.
+A desktop application for identifying and characterizing RNA thermometers, riboswitches, and other regulatory RNA structures in bacterial sequences. Built for researchers who need to screen large pools of candidate sequences and quantify structural features at multiple folding temperatures.
 
-## 🆕 What's New in v2.0
+Previously known as RNA Thermometer Finder.
 
-### Major Features
-- **Original Sequence Quality Score**: New 0-6 metric for complete sequence evaluation
-- **Enhanced Filtering**: MFE and composition range checks for original sequences
-- **Smart Performance**: Conditional calculations based on selected CSV columns
-- **Dual Quality Metrics**: Separate scores for hairpin and original sequence
+---
 
-### New Analysis Settings
-- Original sequence MFE ranges (25°C, 37°C, 42°C)
-- Original sequence composition ranges (AU%, GC%, GU%)
+## What it does
 
-### New CSV Columns (7 total)
-- `Original_MFE_25C_InRange` / `37C` / `42C`
-- `Original_AU%_InRange` / `GC%` / `GU%`
-- `Quality_Score_Original` (0-6)
+RSAS takes RNA sequences as input (FASTA, CSV, or TSV), folds them at user-defined temperatures using ViennaRNA, and reports structural features relevant to post-transcriptional regulation. The core analysis pipeline:
+
+1. Folds each sequence at every configured temperature (MFE and optionally partition function)
+2. Detects the terminal hairpin or RBS-sequestering hairpin
+3. Computes base-pair composition (AU%, GC%, GU%) for both full-length and hairpin
+4. Identifies the Shine-Dalgarno / RBS region and measures how sequestered it is at each temperature
+5. Scores each sequence against user-defined quality criteria
+6. Optionally searches for custom motif patterns and quantifies their sequestering
+
+Results are exported as CSV and Excel workbooks with up to three tabs (Full Sequence, Hairpin Analysis, Motif Matches).
 
 ---
 
 ## Features
 
-- 🧬 Detect terminal hairpin structures
-- 🌡️ Analyze temperature-dependent MFE (25°C, 37°C, 42°C)
-- 📊 Calculate base pair composition (AU%, GC%, GU%)
-- 🔍 Identify ribosome binding sites
-- 📈 Dual quality scoring (hairpin + original sequence, 0-6 each)
-- ⚙️ Customizable filtering ranges
-- 📋 Flexible CSV output configuration
-- 🖥️ User-friendly GUI
+### Core analysis
+- **Hairpin detection** — two modes: terminal (rightmost stem-loop) or RBS-based (finds the hairpin that sequesters the Shine-Dalgarno, with AUG fallback for fourU-type thermometers)
+- **Customizable folding temperatures** — configure 1 to 5 temperatures (not limited to 25/37/42). All columns, keys, and Excel headers update dynamically
+- **MFE folding** — minimum free energy structure at each temperature via ViennaRNA
+- **Partition function** (optional) — ensemble energy, mean paired probability, and per-nucleotide unpaired probabilities for accessibility analysis
+- **RBS sequestering** — Shine-Dalgarno detection, paired percentage at each temperature, and temperature-difference columns to spot thermometer-like responses
+- **Composition analysis** — AU%, GC%, GU% for full-length sequence and extracted hairpin, with configurable "in range" filters
+
+### Motif / Sequence Finder
+- Search for any nucleotide pattern using IUPAC degenerate codes (R, Y, S, W, K, M, B, D, H, V, N)
+- Reports **all overlapping matches** (not just the best one) with paired percentage, dot-bracket structure, and PF accessibility at each temperature
+- Semicolon-separated summary columns in the main CSV; dedicated "Motif Matches" Excel tab with one row per hit per sequence
+- Temperature-difference columns highlight motifs that become more accessible at elevated temperatures
+
+### Synthetic Pool Generator
+- Build random RNA sequence pools from a customizable template of segments (random regions + fixed IUPAC motifs)
+- Built-in preset: RBS + AUG layout (R84 + GGAGG + R8 + AUG)
+- Optional composition filtering by GC%, AU%, and/or GU% with independent targets and tolerances
+- FASTA output, configurable pool size and random seed for reproducibility
+
+### Quality scoring
+- **Terminal Hairpin Quality Score** (0-6) — how many hairpin criteria (MFE and composition at each temp) fall within the configured ranges
+- **Full-Length Quality Score** (0-6) — same idea applied to the full sequence
+- **Quality Score Builder** — interactive dialog for defining which criteria matter and how they're weighted
+
+### Upstream sequence extraction
+- Extract sequences upstream (or downstream) of a genomic feature from local genome + annotation files
+- Fetch sequences directly from NCBI by accession
+- Configurable region length, start codon inclusion, and direction
+
+### Output and export
+- **CSV** with only the columns you've enabled (configurable via Output Columns dialog)
+- **Excel** workbook with up to 3 tabs: Full Sequence, Hairpin Analysis, and Motif Matches
+- Built-in output presets: Hairpin Analysis, Full Sequence Analysis, Riboswitch, Full Export
+- Save/load custom column presets
+- Export to any location with timestamped filename suggestions
+
+### GUI
+- Modern CustomTkinter interface with dark and light mode support
+- Sidebar navigation: Analyze, Results, Settings, Sequence Extractor, Synthetic Pool
+- Drag-and-drop file input
+- Keyboard shortcuts (Cmd/Ctrl+O open, Cmd/Ctrl+R run, Cmd/Ctrl+E export)
+- Multiprocessing with configurable CPU core count
+- Progress logging with toast notifications
 
 ---
 
-## Quick Start
+## Quick start
 
-### For Users (No Python Required)
+### Pre-built app (no Python needed)
 
-**Download the application:**
-- [📥 v2.0.0 - macOS Download](../../releases/tag/v2.0.0)
+1. Download the latest release from [Releases](https://github.com/RoyCyber1/RNAThermoFinder/releases)
+2. Unzip and double-click `RSAS.app` (macOS) or `RSAS.exe` (Windows)
+3. If macOS blocks it: right-click the app, click Open, then click Open again
 
-**Run:**
-1. Unzip the downloaded file
-2. Double-click `RNAThermoFinder.app`
-3. If macOS blocks it: Right-click → Open → Open
+### From source
 
-### For Developers
-
-**Prerequisites:**
-- Python 3.8+
-- ViennaRNA package
-
-**Installation:**
 ```bash
-# Clone repository
-git clone https://github.com/YOUR_USERNAME/RNAThermoFinder.git
+# 1. Install ViennaRNA (required for folding)
+brew install viennarna          # macOS
+# sudo apt-get install viennarna  # Ubuntu/Debian
+
+# 2. Clone and install
+git clone https://github.com/RoyCyber1/RNAThermoFinder.git
 cd RNAThermoFinder
-
-# Install ViennaRNA
-brew install viennarna  # macOS
-# OR
-sudo apt-get install viennarna  # Linux
-
-# Install Python dependencies
 pip install -r requirements.txt
 
-# Run
+# 3. Run
 python main.py
 ```
 
----
-
-## Usage
-
-### Basic Workflow
-
-1. **Open File**: Click "Browse" to select a FASTA file
-2. **Configure** (Optional):
-   - Click "⚙️ Analysis Settings" to set filter ranges
-   - Click "📊 CSV Output" to choose columns
-3. **Analyze**: Click "🧬 Analyze" to run analysis
-4. **Export**: Results auto-save to `Data/Outputs/rna_results.csv`
-
-### Analysis Settings
-
-**Hairpin Filters** (Tab 1):
-- AU%, GC%, GU% ranges
-- MFE ranges at 25°C, 37°C, 42°C
-
-**Original Sequence Filters** (Tab 1 - Bottom):
-- Original AU%, GC%, GU% ranges
-- Original MFE ranges at all temperatures
-
-### CSV Output Configuration
-
-**Presets:**
-- **Hairpin Preset**: Focus on terminal hairpin analysis
-- **Preset 2**: Includes original sequence data + range checks
-
-**Custom**: Select individual columns across 11 categories
+See [docs/installation.md](docs/installation.md) for detailed instructions and troubleshooting.
 
 ---
 
-## Output
+## Basic workflow
 
-### CSV Columns
-
-**Basic Info:**
-- Name, Complete Sequence, Complete Structure
-
-**Original Sequence:**
-- MFE at 25/37/42°C
-- AU%, GC%, GU% composition
-- Range check results (In Range / Not in Range)
-- Quality Score (0-6)
-
-**Terminal Hairpin:**
-- Hairpin sequence & structure
-- MFE at 25/37/42°C
-- AU%, GC%, GU% composition
-- Range check results
-- Quality Score (0-6)
-
-**RBS Analysis:**
-- RBS sequence, structure, paired %
-
-### Quality Scores
-
-**Hairpin Quality (0-6):** Based on 6 hairpin criteria
-**Original Quality (0-6):** Based on 6 original sequence criteria
-
-*Higher scores = more criteria met*
+1. **Load sequences** — click Browse or drag a FASTA/CSV/TSV file onto the window
+2. **Configure (optional)**
+   - **Analysis Settings** — set hairpin detection method, folding temperatures
+   - **Performance** — set CPU core count for parallel analysis
+   - **Output Columns** — pick a preset or enable/disable individual columns
+   - **Motif Finder** — enter a pattern to search for across all sequences
+   - **Sequence Options** — optionally append a sequence (e.g. AUG) before analysis
+3. **Run** — click Analyze. Progress is shown in the log area
+4. **Export** — click Export to save results as `.xlsx` or `.csv` to any location
 
 ---
 
-## Performance Optimization
+## Output columns
 
-v2.0 includes smart calculation logic:
-- Original sequence MFE only calculated if needed
-- Original composition only calculated if needed
-- Range checks only run when columns enabled
+Results include (depending on what's enabled):
 
-**Result:** Faster analysis when using hairpin-only mode
+| Category | Example columns |
+|---|---|
+| Sequence info | Name, Sequence, Structure at each temp |
+| Full-length MFE | MFE at each configured temperature |
+| Composition | AU%, GC%, GU%, in-range flags |
+| RBS sequestering | RBS sequence, structure, paired% at each temp, temperature diffs |
+| Hairpin | Detection method, sequence, structure, composition, MFE at each temp |
+| Partition function | Ensemble energy, mean paired prob, RBS accessibility |
+| Motif finder | Pattern, match count, match positions, paired%, structure, PF accessibility, diffs |
+| Quality scores | Hairpin score (0-6), full-length score (0-6), class, breakdown |
 
 ---
 
-## Building from Source
+## Project structure
+
+```
+RNAThermoFinder/
+├── main.py                    # entry point
+├── settings_manager.py        # JSON-based config persistence
+├── setup.py                   # package setup
+├── build_app.py               # PyInstaller build script
+├── requirements.txt
+├── RNAThermoFinder.spec       # PyInstaller spec
+├── RnaThermofinder/
+│   ├── core/
+│   │   ├── FastaParse.py      # FASTA/CSV/TSV input parsing
+│   │   └── HairpinAnalysis.py # main analysis pipeline
+│   ├── gui/
+│   │   ├── RNAGUI.py          # main application window
+│   │   ├── settings_dialog.py # analysis + performance settings
+│   │   ├── settings_dialog_csv.py    # output column config
+│   │   ├── motif_finder_dialog.py    # motif search config
+│   │   ├── quality_score_builder.py  # quality score criteria
+│   │   ├── synthetic_pool_dialog.py  # pool generator UI
+│   │   ├── upstream_extractor_dialog.py
+│   │   └── sequence_settings_dialog.py
+│   └── utils/
+│       ├── analysis_helpers.py       # CSV/Excel output builders
+│       ├── motif_finder.py           # IUPAC motif search + sequestering
+│       ├── quality_scoring.py        # scoring logic
+│       ├── synthetic_pool_generator.py
+│       └── upstream_extractor.py
+├── Data/
+│   ├── Inputs/                # place input files here
+│   └── Outputs/               # analysis results written here
+└── docs/
+    ├── installation.md
+    └── usage.md
+```
+
+---
+
+## Building from source
+
+To create a standalone app bundle:
+
 ```bash
-# Install build tools
 pip install pyinstaller
-
-# Build application
 python build_app.py
+```
 
-# Output:
-# macOS: dist/RNAThermoFinder.app
-# Windows: dist/RNAThermoFinder.exe
-# Linux: dist/RNAThermoFinder
+This produces `dist/RSAS.app` (macOS), `dist/RSAS.exe` (Windows), or `dist/RSAS` (Linux).
+
+You can also use the spec file directly:
+
+```bash
+pyinstaller RNAThermoFinder.spec
 ```
 
 ---
 
-## Upgrading from v1.0
+## Documentation
 
-**Breaking Changes:** None - fully backward compatible
-
-**New Features:**
-- Old CSV files will work
-- Old settings will work
-- New columns disabled by default
-
-**To use new features:**
-1. Open "Analysis Settings"
-2. Set original sequence ranges
-3. Open "CSV Output Settings"
-4. Enable desired original sequence columns
-
----
-
-## Example Use Cases
-
-### Use Case 1: Quick Hairpin Screening
-```
-Settings: Hairpin Preset (default)
-Output: Hairpin-focused columns only
-Speed: ⚡ Fast (minimal calculations)
-```
-
-### Use Case 2: Comprehensive Analysis
-```
-Settings: Preset 2
-Output: All original + hairpin data
-Speed: 🐌 Slower (full calculations)
-Use: When you need complete sequence context
-```
-
-### Use Case 3: Custom Research
-```
-Settings: Custom column selection
-Output: Only columns you need
-Speed: ⚡ Optimized (calculates what you select)
-```
+- **[Installation guide](docs/installation.md)** — system requirements, ViennaRNA setup, Python dependencies, verification, troubleshooting
+- **[Usage guide](docs/usage.md)** — GUI walkthrough, all settings dialogs, output format details, scripting API, tips
 
 ---
 
 ## Citation
 
-If you use this tool in your research, please cite:
+If you use RSAS in published research:
+
 ```
-Vaknin, R. (2024). RNA Thermometer Finder v2.0: 
-Advanced filtering and quality scoring for RNA thermometer discovery.
+Vaknin, R. (2025). RSAS: RNA Structure Analysis Suite v3.0.
 GitHub: https://github.com/RoyCyber1/RNAThermoFinder
 ```
 
@@ -218,46 +207,22 @@ GitHub: https://github.com/RoyCyber1/RNAThermoFinder
 
 ## Changelog
 
-### v2.0.0 (December 2024)
-**Added:**
-- Original sequence quality scoring (0-6)
-- Original sequence MFE range filters
-- Original sequence composition range filters
-- 7 new CSV output columns
-- Conditional calculation system
-- Auto-enable logic for settings
-
-**Improved:**
-- Performance when using hairpin-only mode
-- Settings dialog organization
-- CSV output flexibility
-
-**Fixed:**
-- Quality score display name consistency
-- Fallback CSV header naming
-
-### v1.0.0 (Initial Release)
-- Basic hairpin detection
-- Temperature-dependent MFE analysis
-- RBS identification
-- Quality scoring
+See [CHANGELOG.md](RnaThermofinder/CHANGELOG.md) for full version history.
 
 ---
 
 ## License
 
-MIT License - See LICENSE file
+MIT License — see [LICENSE.md](LICENSE.md).
 
 ## Author
 
-Roy Vaknin  
-Email: roycyber13@gmail.com  
-GitHub:https://github.com/RoyCyber1/RNAThermoFinder
-
----
+Roy Vaknin
+- Email: roycyber13@gmail.com
+- GitHub: [RoyCyber1](https://github.com/RoyCyber1)
 
 ## Acknowledgments
 
-- ViennaRNA package for RNA folding algorithms
+- [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) for RNA folding algorithms
 - Dr. Abdelsayed for experimental validation data
 - SCREAM team for testing and feedback

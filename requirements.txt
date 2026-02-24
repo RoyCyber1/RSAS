@@ -1,10 +1,14 @@
-setuptools>=80.9.0
-pyinstaller>=6.16.0
+# Runtime
+openpyxl>=3.1.0
+numpy>=1.20.0
+customtkinter>=5.2.0
+biopython>=1.80
 
-# Core dependencies
-# ViennaRNA (install separately via system package manager)
+# Build (only needed for packaging)
+setuptools>=68.0
+pyinstaller>=6.0
 
-# Optional
-# pandas
-# numpy
-# biopython
+# ViennaRNA must be installed via system package manager:
+#   macOS:  brew install viennarna
+#   Ubuntu: sudo apt-get install viennarna
+#   Fedora: sudo dnf install viennarna
