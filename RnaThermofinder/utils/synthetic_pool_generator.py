@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, TextIO
 
 # IUPAC -> list of matching concrete bases
 _IUPAC_RESOLVE: Dict[str, List[str]] = {
-    "A": ["A"], "C": ["C"], "G": ["G"], "U": ["U"],
+    "A": ["A"], "C": ["C"], "G": ["G"], "U": ["U"], "T": ["U"],
     "R": ["A", "G"],   "Y": ["C", "U"],   "S": ["G", "C"],   "W": ["A", "U"],
     "K": ["G", "U"],   "M": ["A", "C"],
     "B": ["C", "G", "U"], "D": ["A", "G", "U"],

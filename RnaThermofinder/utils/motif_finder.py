@@ -12,7 +12,7 @@ import re
 from typing import Dict, List, Optional, Tuple, Any
 
 _IUPAC_RNA = {
-    "A": "A", "C": "C", "G": "G", "U": "U",
+    "A": "A", "C": "C", "G": "G", "U": "U", "T": "U",
     "R": "[AG]", "Y": "[CU]", "S": "[GC]", "W": "[AU]",
     "K": "[GU]", "M": "[AC]", "B": "[CGU]", "D": "[AGU]",
     "H": "[ACU]", "V": "[ACG]", "N": "[ACGU]",
