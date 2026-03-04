@@ -28,6 +28,7 @@ from .upstream_extractor_dialog import SequenceExtractorDialog
 from .quality_score_builder import QualityScoreBuilderDialog
 from .motif_finder_dialog import MotifFinderDialog
 from .synthetic_pool_dialog import SyntheticPoolDialog
+from .rnarobo_dialog import RNAroboDialog
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -224,6 +225,7 @@ class RSASApp:
             ("settings", "Settings",          "\u2699"),
             ("upstream", "Sequence Extractor", "\u21c5"),
             ("pool",     "Synthetic Pool",     "\u2261"),
+            ("rnarobo",  "RNArobo Search",     "\u2316"),
         ]
         ctk.CTkLabel(self._sidebar, text="NAVIGATION",
                      font=ctk.CTkFont(size=10, weight="bold"),
@@ -267,6 +269,7 @@ class RSASApp:
         self._build_settings_page()
         self._build_upstream_page()
         self._build_pool_page()
+        self._build_rnarobo_page()
 
         # Show default page
         self._show_page("analyze")
@@ -545,6 +548,25 @@ class RSASApp:
             command=self._open_pool_generator,
         ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
 
+    def _build_rnarobo_page(self):
+        page = ctk.CTkFrame(self._content, fg_color="transparent")
+        self._pages["rnarobo"] = page
+        page.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(page, text="RNArobo Structural Motif Search",
+                     font=ctk.CTkFont(size=18, weight="bold"),
+                     ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 4))
+        ctk.CTkLabel(page, text="Search for structural RNA motifs (helices, loops, junctions) using RNArobo descriptors",
+                     font=ctk.CTkFont(size=12), text_color=MUTED,
+                     ).grid(row=1, column=0, sticky="w", padx=24, pady=(0, 12))
+
+        ctk.CTkButton(
+            page, text="Open RNArobo Search", width=220, height=42,
+            fg_color=ACCENT, hover_color=ACCENT_HOVER,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._open_rnarobo_dialog,
+        ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
+
     # ──────────────────────────────────────────────────────────────────────
     # Drag-and-drop (tkdnd fallback: OS file drop via tkinter)
     # ──────────────────────────────────────────────────────────────────────
@@ -713,6 +735,10 @@ class RSASApp:
 
     def _open_pool_generator(self):
         dialog = SyntheticPoolDialog(self.root)
+        dialog.show()
+
+    def _open_rnarobo_dialog(self):
+        dialog = RNAroboDialog(self.root)
         dialog.show()
 
     # ──────────────────────────────────────────────────────────────────────

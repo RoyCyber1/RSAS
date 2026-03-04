@@ -169,7 +169,7 @@ def build_csv_row(result_data: dict, settings_manager) -> list:
 
 def format_mfe_value(mfe: float, min_val: float = -15, max_val: float = -5) -> str:
     """Format MFE value or 'Not in Range' if outside thresholds."""
-    if min_val <= -mfe <= max_val:
+    if min_val <= mfe <= max_val:
         return f"{mfe:.2f}"
     else:
         return "Not in Range"

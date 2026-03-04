@@ -4,6 +4,7 @@ Uses PyInstaller to package everything into a single distributable app.
 """
 
 import PyInstaller.__main__
+import subprocess
 import sys
 import platform
 import os
@@ -47,6 +48,18 @@ def build_app():
         '--exclude-module=jupyter',
     ]
 
+    # Bundle rnarobo binary if available
+    rnarobo_bin = None
+    platform_dirs = {"Darwin": "macos", "Windows": "windows", "Linux": "linux"}
+    bin_name = "rnarobo.exe" if system == "Windows" else "rnarobo"
+    candidate = os.path.join("bin", platform_dirs.get(system, "linux"), bin_name)
+    if os.path.isfile(candidate):
+        rnarobo_bin = candidate
+        base_options.append(f'--add-binary={candidate}{os.pathsep}bin')
+        print(f"Bundling rnarobo binary: {candidate}")
+    else:
+        print(f"Note: rnarobo binary not found at {candidate} — RNArobo search will be unavailable in the build")
+
     if system == "Darwin":
         print("Building for macOS...")
         options = base_options + [
@@ -82,7 +95,31 @@ def build_app():
     try:
         PyInstaller.__main__.run(options)
         print(f"\nBuild complete! To run: {output_msg}")
+
+        # macOS: ad-hoc codesign to prevent "damaged app" errors
         if system == "Darwin":
+            app_path = os.path.join("dist", "RSAS.app")
+            if os.path.isdir(app_path):
+                print("Signing app with ad-hoc identity...")
+                subprocess.run(["xattr", "-cr", app_path], check=False)
+                sign = subprocess.run(
+                    ["codesign", "--force", "--deep", "--sign", "-", app_path],
+                    capture_output=True, text=True,
+                )
+                if sign.returncode == 0:
+                    print("Ad-hoc codesign successful.")
+                else:
+                    print(f"Warning: codesign failed: {sign.stderr.strip()}")
+
+                verify = subprocess.run(
+                    ["codesign", "--verify", "--verbose", app_path],
+                    capture_output=True, text=True,
+                )
+                if verify.returncode == 0:
+                    print("Signature verified OK.")
+                else:
+                    print(f"Warning: verification failed: {verify.stderr.strip()}")
+
             print("Your .app is in: dist/RSAS.app")
             print("To distribute: compress it to a .zip file")
         elif system == "Windows":

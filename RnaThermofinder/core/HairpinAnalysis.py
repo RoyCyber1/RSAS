@@ -69,6 +69,9 @@ def find_all_hairpins(sequence, fold_temp=25, min_length=15):
     # Fold the sequence
     md = RNA.md()
     md.temperature = fold_temp
+    md.dangles = 2  # Default
+    md.noLP = 1     # No lonely pairs
+    md.noGU = 0     # Allow GU pairs (default)
     fc = RNA.fold_compound(sequence, md)
     structure, mfe = fc.mfe()
 
@@ -974,7 +977,9 @@ def hairpin_mfe_at_temps(hairpin_seq, temps=[25, 37, 42]):
     for temp in temps:
         md = RNA.md()  # Create a model details object
         md.temperature = float(temp)
-        md.noLP = 1  # match RNAfold web server defaults
+        md.dangles = 2  # Default
+        md.noLP = 1     # No lonely pairs
+        md.noGU = 0     # Allow GU pairs (default)
 
         fc = RNA.fold_compound(hairpin_seq, md)  # Pass md at creation
         structure, mfe = fc.mfe()
@@ -998,7 +1003,9 @@ def fold_at_temp(seq, temp):
 def base_pairs_at_temps_struct(hairpin_seq, temp=25):
         md = RNA.md()  # Create a model details object
         md.temperature = float(temp)
-        md.noLP = 1  # match RNAfold web server defaults
+        md.dangles = 2  # Default
+        md.noLP = 1     # No lonely pairs
+        md.noGU = 0     # Allow GU pairs (default)
 
         fc = RNA.fold_compound(hairpin_seq, md)  # Pass md at creation
         structure, mfe = fc.mfe()

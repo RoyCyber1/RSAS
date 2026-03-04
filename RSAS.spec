@@ -2,7 +2,7 @@
 from PyInstaller.utils.hooks import collect_all
 
 datas = []
-binaries = []
+binaries = [('bin/macos/rnarobo', 'bin')]
 hiddenimports = ['RNA', 'tkinter', 'customtkinter', 'numpy', 'Bio', 'PIL']
 tmp_ret = collect_all('RNA')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
