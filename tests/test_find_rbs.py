@@ -1,4 +1,8 @@
-from RnaThermofinder.core.HairpinAnalysis import find_rbs_in_hairpin
+from RnaThermofinder.core.HairpinAnalysis import (
+    find_rbs_in_hairpin,
+    find_rbs_in_full_sequence,
+    find_rbs_containing_hairpin,
+)
 from RnaThermofinder.core.rbs_config import RbsConfig
 
 # Index map of S:  0..2 "AAA" | 3..8 "GGAGGA" | 9..13 "AAAAA" | 14..16 "AUG" | 17..19 "AAA"
@@ -46,3 +50,23 @@ def test_anchor_too_close_to_start_returns_not_found():
     assert r["found_rbs"] is False
     assert r["aug_index"] == 0
     assert r["rbs_region"] == ""
+
+
+def test_full_sequence_accepts_config():
+    # dot-bracket string the same length as S (20 nt) — structure content
+    # is not asserted here, only that the cfg parameter is accepted.
+    struct = "." * len(S)
+    r = find_rbs_in_full_sequence(S, struct, RbsConfig())
+    assert "rbs_seq" in r
+
+
+def test_containing_hairpin_accepts_config():
+    struct = "." * len(S)
+    r = find_rbs_containing_hairpin(S, struct, RbsConfig())
+    assert "found" in r
+
+
+def test_containing_hairpin_default_equals_no_config():
+    struct = "." * len(S)
+    assert (find_rbs_containing_hairpin(S, struct)
+            == find_rbs_containing_hairpin(S, struct, RbsConfig()))
