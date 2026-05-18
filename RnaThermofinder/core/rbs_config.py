@@ -23,14 +23,18 @@ class RbsConfig:
 
     @classmethod
     def from_settings(cls, block: dict) -> "RbsConfig":
-        """Build from a settings dict; missing keys fall back to defaults."""
+        """Build from a settings dict; missing keys fall back to defaults.
+
+        Values are coerced to their expected types because the settings block
+        comes from a JSON file that may be hand-edited.
+        """
         block = block or {}
         d = cls()
         return cls(
-            anchor_pattern=block.get("anchor_pattern", d.anchor_pattern),
-            anchor_match_side=block.get("anchor_match_side", d.anchor_match_side),
-            min_spacing=block.get("min_spacing", d.min_spacing),
-            max_spacing=block.get("max_spacing", d.max_spacing),
+            anchor_pattern=str(block.get("anchor_pattern", d.anchor_pattern)).strip(),
+            anchor_match_side=str(block.get("anchor_match_side", d.anchor_match_side)),
+            min_spacing=int(block.get("min_spacing", d.min_spacing)),
+            max_spacing=int(block.get("max_spacing", d.max_spacing)),
         )
 
     def validate(self) -> None:

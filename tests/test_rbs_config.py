@@ -55,3 +55,16 @@ def test_validate_rejects_bad_iupac_letter():
 def test_validate_rejects_bad_match_side():
     with pytest.raises(ValueError):
         RbsConfig(anchor_match_side="middle").validate()
+
+
+def test_from_settings_coerces_string_numbers():
+    cfg = RbsConfig.from_settings({"min_spacing": "5", "max_spacing": "14"})
+    assert cfg.min_spacing == 5
+    assert cfg.max_spacing == 14
+    assert isinstance(cfg.min_spacing, int)
+    assert isinstance(cfg.max_spacing, int)
+    cfg.validate()  # must not raise
+
+
+def test_from_settings_none_is_all_defaults():
+    assert RbsConfig.from_settings(None) == RbsConfig()
