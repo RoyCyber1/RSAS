@@ -207,7 +207,7 @@ def find_rbs_in_hairpin(hairpin_seq, cfg=None):
 
     return {
         "found_rbs": found,
-        "aug_index": anchor_pos,
+        "aug_index": anchor_pos,  # anchor start index; key name kept for backward compat
         "rbs_seq": rbs_seq,
         "rbs_region": rbs_region,
     }

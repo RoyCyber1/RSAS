@@ -38,3 +38,11 @@ def test_iupac_anchor_finds_gug_start():
     r = find_rbs_in_hairpin(seq, cfg)
     assert r["aug_index"] == 15
     assert r["found_rbs"] is True
+
+
+def test_anchor_too_close_to_start_returns_not_found():
+    # AUG at index 0 leaves no room for an upstream window
+    r = find_rbs_in_hairpin("AUGCCCCCCC")
+    assert r["found_rbs"] is False
+    assert r["aug_index"] == 0
+    assert r["rbs_region"] == ""
