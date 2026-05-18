@@ -19,6 +19,7 @@ from RnaThermofinder.utils.quality_scoring import (
     build_hairpin_metrics, build_full_metrics, build_metric_range_keys,
 )
 from settings_manager import SettingsManager
+from RnaThermofinder.core.rbs_config import RbsConfig, resolve_anchor
 
 
 def get_terminal_hairpin_with_tail(sequence, structure):
@@ -160,34 +161,39 @@ def trim_trailing_unpaired(sequence, structure):
     else:
         return sequence[:-trailing_dots]
 
-def find_rbs_in_hairpin(hairpin_seq):
+def find_rbs_in_hairpin(hairpin_seq, cfg=None):
     """
     Finds the Shine-Dalgarno-like sequence in a terminal hairpin.
 
     Args:
         hairpin_seq (str): The RNA sequence of the terminal hairpin.
+        cfg (RbsConfig): Anchor + window config. Defaults to RbsConfig()
+                         (last "AUG", 5-13 nt upstream window).
 
     Returns:
         dict: {
-            'found_rbs': bool,       # True if a G-rich 6-mer found 5-13 nt upstream of AUG
-            'aug_index': int,        # Index of last AUG in hairpin_seq
+            'found_rbs': bool,       # True if a G-rich 6-mer found in the window
+            'aug_index': int,        # Start index of the resolved anchor
             'rbs_seq': str or None,  # The 6-nt G-rich Shine-Dalgarno candidate
             'rbs_region': str        # Full upstream region scanned
         }
     """
+    if cfg is None:
+        cfg = RbsConfig()
+
     seq = hairpin_seq.upper()
-    last_aug = seq.rfind("AUG")
-    if last_aug == -1:
+    anchor_pos, _anchor_len = resolve_anchor(seq, cfg)
+    if anchor_pos is None:
         return {
             "found_rbs": False,
             "aug_index": None,
             "rbs_seq": None,
-            "rbs_region": None
+            "rbs_region": None,
         }
 
-    # Search 5-13 nt upstream of AUG
-    search_start = max(0, last_aug - 13)
-    search_end = max(0, last_aug - 5)
+    # Search the configured window upstream of the anchor
+    search_start = max(0, anchor_pos - cfg.max_spacing)
+    search_end = max(0, anchor_pos - cfg.min_spacing)
     rbs_region = seq[search_start:search_end]
 
     found = False
@@ -201,9 +207,9 @@ def find_rbs_in_hairpin(hairpin_seq):
 
     return {
         "found_rbs": found,
-        "aug_index": last_aug,
+        "aug_index": anchor_pos,
         "rbs_seq": rbs_seq,
-        "rbs_region": rbs_region
+        "rbs_region": rbs_region,
     }
 
 
