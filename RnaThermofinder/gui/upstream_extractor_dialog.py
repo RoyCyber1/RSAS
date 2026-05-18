@@ -28,7 +28,7 @@ class SequenceExtractorDialog:
         self.dialog.resizable(True, True)
         self.dialog.minsize(780, 720)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self._create_widgets()
 
@@ -36,6 +36,14 @@ class SequenceExtractorDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     def _create_widgets(self):
         main = ctk.CTkFrame(self.dialog, fg_color="transparent")
@@ -164,7 +172,7 @@ class SequenceExtractorDialog:
 
         ctk.CTkLabel(row, text="Direction:", width=120).pack(side=tk.LEFT)
 
-        self.direction_var = tk.StringVar(value="upstream")
+        self.direction_var = tk.StringVar(value="Upstream")
         self.direction_seg = ctk.CTkSegmentedButton(
             row, values=["Upstream", "Downstream", "Both"],
             variable=self.direction_var,
@@ -182,9 +190,11 @@ class SequenceExtractorDialog:
                      wraplength=350).pack(side=tk.LEFT, padx=(12, 0))
 
     def _on_direction_changed(self, value):
-        """Show/hide parameter fields based on direction."""
-        direction = value.lower()
-        self.direction_var.set(direction)
+        """Show/hide parameter fields based on direction.
+        NOTE: CTkSegmentedButton already updates direction_var via its variable= binding.
+        We must NOT override it with a lowercase value or the button loses its selection.
+        """
+        direction = value.lower()  # local only — used for logic below
 
         descs = {
             "upstream": "Extract N bases before the CDS start (promoter / 5' UTR region)",
@@ -359,13 +369,13 @@ class SequenceExtractorDialog:
         download_dir = self.download_dir_var.get().strip()
 
         if not accession:
-            messagebox.showerror("Error", "Enter an accession number.")
+            messagebox.showerror("Error", "Enter an accession number.", parent=self.dialog)
             return
         if not email:
-            messagebox.showerror("Error", "Enter your email (NCBI requirement).")
+            messagebox.showerror("Error", "Enter your email (NCBI requirement).", parent=self.dialog)
             return
         if not download_dir:
-            messagebox.showerror("Error", "Select a download directory.")
+            messagebox.showerror("Error", "Select a download directory.", parent=self.dialog)
             return
 
         self.fetch_btn.configure(state="disabled")
@@ -383,11 +393,12 @@ class SequenceExtractorDialog:
                 self._safe_after(lambda: self.fetch_status_var.set("Fetch complete"))
                 self._safe_after(lambda: messagebox.showinfo(
                     "Fetch Complete",
-                    f"Downloaded:\n\nGenBank: {gb_path}\nFASTA: {fasta_path}"))
+                    f"Downloaded:\n\nGenBank: {gb_path}\nFASTA: {fasta_path}",
+                    parent=self.dialog))
             except Exception as e:
                 self._log(f"Error: {e}")
                 self._safe_after(lambda: self.fetch_status_var.set("Fetch failed"))
-                self._safe_after(lambda: messagebox.showerror("Error", str(e)))
+                self._safe_after(lambda: messagebox.showerror("Error", str(e), parent=self.dialog))
             finally:
                 self._safe_after(lambda: self.fetch_btn.configure(state="normal"))
 
@@ -409,13 +420,21 @@ class SequenceExtractorDialog:
         out = self.output_var.get().strip()
 
         if not gb:
-            messagebox.showerror("Error", "Select a GenBank file (or fetch from NCBI).")
+            messagebox.showerror("Error", "Select a GenBank file (or fetch from NCBI).", parent=self.dialog)
             return
         if not fa:
-            messagebox.showerror("Error", "Select a FASTA file (or fetch from NCBI).")
+            messagebox.showerror("Error", "Select a FASTA file (or fetch from NCBI).", parent=self.dialog)
             return
         if not out:
-            messagebox.showerror("Error", "Specify an output file location.")
+            messagebox.showerror("Error", "Specify an output file location.", parent=self.dialog)
+            return
+
+        # Verify files actually exist on disk before running
+        if not Path(gb).exists():
+            messagebox.showerror("Error", f"GenBank file not found:\n{gb}", parent=self.dialog)
+            return
+        if not Path(fa).exists():
+            messagebox.showerror("Error", f"FASTA file not found:\n{fa}", parent=self.dialog)
             return
 
         self.genbank_file = gb
@@ -434,7 +453,7 @@ class SequenceExtractorDialog:
                 if upstream_length <= 0:
                     raise ValueError()
             except ValueError:
-                messagebox.showerror("Error", "Upstream length must be a positive integer.")
+                messagebox.showerror("Error", "Upstream length must be a positive integer.", parent=self.dialog)
                 return
 
         if direction in ("downstream", "both"):
@@ -443,7 +462,7 @@ class SequenceExtractorDialog:
                 if downstream_length <= 0:
                     raise ValueError()
             except ValueError:
-                messagebox.showerror("Error", "Downstream length must be a positive integer.")
+                messagebox.showerror("Error", "Downstream length must be a positive integer.", parent=self.dialog)
                 return
 
         # ── Optional Window 2 ─────────────────────────────────────────
@@ -457,7 +476,7 @@ class SequenceExtractorDialog:
                     if upstream_length_2 <= 0:
                         raise ValueError()
                 except ValueError:
-                    messagebox.showerror("Error", "Window 2 upstream length must be a positive integer.")
+                    messagebox.showerror("Error", "Window 2 upstream length must be a positive integer.", parent=self.dialog)
                     return
 
             if direction in ("downstream", "both"):
@@ -466,7 +485,7 @@ class SequenceExtractorDialog:
                     if downstream_length_2 <= 0:
                         raise ValueError()
                 except ValueError:
-                    messagebox.showerror("Error", "Window 2 downstream length must be a positive integer.")
+                    messagebox.showerror("Error", "Window 2 downstream length must be a positive integer.", parent=self.dialog)
                     return
 
         # ── Launch extraction ─────────────────────────────────────────
@@ -494,10 +513,11 @@ class SequenceExtractorDialog:
                 self._safe_after(lambda: messagebox.showinfo(
                     "Success",
                     f"Extracted {dir_label} sequences: {successful}/{total} genes\n"
-                    f"Output: {self.output_file}"))
+                    f"Output: {self.output_file}",
+                    parent=self.dialog))
             except Exception as e:
                 self._log(f"Error: {e}")
-                self._safe_after(lambda: messagebox.showerror("Error", str(e)))
+                self._safe_after(lambda: messagebox.showerror("Error", str(e), parent=self.dialog))
             finally:
                 self._safe_after(lambda: self.run_btn.configure(state="normal"))
 

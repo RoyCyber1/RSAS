@@ -213,11 +213,17 @@ def _extract_downstream(genome_seq, start: int, end: int, strand: int, length: i
 def _write_fasta_entry(out_fasta, gene, protein_id, product, strand_str,
                        start, end, start_codon, stop_codon,
                        direction_label, length, seq):
-    """Write a single FASTA entry with standardised header."""
+    """Write a single FASTA entry with standardised header.
+
+    The header reports the ACTUAL extracted length (len(seq)), which may be
+    shorter than the requested ``length`` for genes near chromosome boundaries.
+    This ensures scientific accuracy — readers see the true sequence length.
+    """
+    actual_length = len(seq)
     header = (f">{gene}|{protein_id}|{product}|"
               f"strand={strand_str}|CDS={start}-{end}|"
               f"start_codon={start_codon}|stop_codon={stop_codon}|"
-              f"{direction_label}={length}bp")
+              f"{direction_label}={actual_length}bp")
     out_fasta.write(f"{header}\n{str(seq)}\n")
 
 

@@ -255,7 +255,8 @@ class QualityScoreBuilderDialog:
         self.dialog.geometry("900x900")
         self.dialog.resizable(True, True)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
+        self.dialog.protocol("WM_DELETE_WINDOW", self._close)
 
         self._create_widgets()
         self._load_active_profile()
@@ -265,6 +266,14 @@ class QualityScoreBuilderDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -366,7 +375,7 @@ class QualityScoreBuilderDialog:
 
         ctk.CTkButton(btn_frame, text="Cancel", width=90,
                       fg_color="gray40", hover_color="gray50",
-                      command=self.dialog.destroy).pack(side=tk.RIGHT, padx=(8, 0))
+                      command=self._close).pack(side=tk.RIGHT, padx=(8, 0))
         ctk.CTkButton(btn_frame, text="Save Profile", width=120,
                       fg_color=self.ACCENT,
                       command=self._save_current_profile).pack(side=tk.RIGHT)
@@ -396,10 +405,15 @@ class QualityScoreBuilderDialog:
         display = self.profile_var.get()
         return self._profile_key_map.get(display, self._default_profile_key)
 
+    def _close(self):
+        self.dialog.grab_release()
+        self.dialog.destroy()
+
     def _on_profile_switch(self, _=None):
         if self._unsaved_changes:
             if messagebox.askyesno("Unsaved Changes",
-                                   "You have unsaved changes. Save before switching?"):
+                                   "You have unsaved changes. Save before switching?",
+                                   parent=self.dialog):
                 self._save_current_profile()
         key = self._get_current_profile_key()
         self._set_active(key)
@@ -444,7 +458,8 @@ class QualityScoreBuilderDialog:
         key = name.lower().replace(" ", "_")
         profiles = self._get_profiles()
         if key in profiles:
-            messagebox.showerror("Error", f"Profile '{name}' already exists.")
+            messagebox.showerror("Error", f"Profile '{name}' already exists.",
+                                 parent=self.dialog)
             return
         self._save_profile(key, {
             "name": name,
@@ -468,7 +483,8 @@ class QualityScoreBuilderDialog:
         key = name.lower().replace(" ", "_")
         profiles = self._get_profiles()
         if key in profiles:
-            messagebox.showerror("Error", f"Profile '{name}' already exists.")
+            messagebox.showerror("Error", f"Profile '{name}' already exists.",
+                                 parent=self.dialog)
             return
         dup = copy.deepcopy(current)
         dup["name"] = name
@@ -482,10 +498,12 @@ class QualityScoreBuilderDialog:
         key = self._get_current_profile_key()
         if key == self._default_profile_key:
             messagebox.showinfo("Cannot Delete",
-                                "The default profile cannot be deleted.")
+                                "The default profile cannot be deleted.",
+                                parent=self.dialog)
             return
         if not messagebox.askyesno("Confirm Delete",
-                                   f"Delete profile '{self.profile_var.get()}'?"):
+                                   f"Delete profile '{self.profile_var.get()}'?",
+                                   parent=self.dialog):
             return
         self._delete_profile_fn(key)
         self._refresh_profile_menu()
@@ -523,7 +541,8 @@ class QualityScoreBuilderDialog:
         available = [k for k in self._metrics_registry if k not in used]
         if not available:
             messagebox.showinfo("All Metrics Added",
-                                "All available metrics are already in this profile.")
+                                "All available metrics are already in this profile.",
+                                parent=self.dialog)
             return
         self._add_criterion(metric=available[0])
 
@@ -623,13 +642,14 @@ class QualityScoreBuilderDialog:
 
         ok, err = validate_profile(profile, metrics_registry=self._metrics_registry)
         if not ok:
-            messagebox.showerror("Validation Error", err)
+            messagebox.showerror("Validation Error", err, parent=self.dialog)
             return
 
         self._save_profile(key, profile)
         self._set_active(key)
         self._unsaved_changes = False
-        messagebox.showinfo("Saved", f"Profile '{profile['name']}' saved successfully.")
+        messagebox.showinfo("Saved", f"Profile '{profile['name']}' saved successfully.",
+                            parent=self.dialog)
 
     # ------------------------------------------------------------------
     def show(self):

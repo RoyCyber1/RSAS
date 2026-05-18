@@ -11,7 +11,7 @@ _DEFAULT_TEMPS = [25, 37, 42]
 
 def calculate_composition(sequence: str) -> dict:
     """Calculate AU%, GC%, GU% for an RNA sequence."""
-    sequence = sequence.upper()
+    sequence = sequence.upper().replace("T", "U")
     length = len(sequence)
 
     if length == 0:

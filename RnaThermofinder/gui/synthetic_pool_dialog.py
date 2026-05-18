@@ -34,10 +34,11 @@ class SyntheticPoolDialog:
         self.dialog.resizable(True, True)
         self.dialog.minsize(600, 600)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         # Segment widget references
         self._segment_rows: list = []  # list of dicts with widget refs
+        self._drag_idx = None          # index of segment row currently being dragged
 
         self._create_widgets()
 
@@ -46,6 +47,14 @@ class SyntheticPoolDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     def _create_widgets(self):
         main = ctk.CTkScrollableFrame(self.dialog, fg_color="transparent")
@@ -94,6 +103,9 @@ class SyntheticPoolDialog:
         ctk.CTkButton(btn_row, text="Remove Last", width=100,
                       fg_color="gray40", hover_color="gray50",
                       command=self._remove_segment).pack(side=tk.LEFT)
+        ctk.CTkLabel(btn_row, text="  ⠿ Drag to reorder",
+                     font=ctk.CTkFont(size=10), text_color=MUTED
+                     ).pack(side=tk.LEFT, padx=(10, 0))
 
         # Preview label
         self.preview_var = tk.StringVar(value="(no segments)")
@@ -132,7 +144,12 @@ class SyntheticPoolDialog:
 
         ctk.CTkLabel(comp_card, text="Composition Targets (optional)",
                      font=ctk.CTkFont(size=13, weight="bold")
-                     ).pack(anchor="w", padx=16, pady=(12, 6))
+                     ).pack(anchor="w", padx=16, pady=(12, 2))
+        ctk.CTkLabel(comp_card,
+                     text="⚠  Composition is calculated on the WHOLE sequence (random + fixed segments combined), not just random regions.",
+                     font=ctk.CTkFont(size=10), text_color="#e67e22",
+                     wraplength=560, justify="left"
+                     ).pack(anchor="w", padx=16, pady=(0, 8))
 
         self._comp_widgets = {}
         for kind in ("GC", "AU", "GU"):
@@ -231,9 +248,21 @@ class SyntheticPoolDialog:
                                    parent=self.dialog)
             return
 
-        idx = len(self._segment_rows) + 1
+        # Capture index BEFORE appending so drag callbacks reference correct position
+        seg_idx = len(self._segment_rows)
+        idx = seg_idx + 1
+
         row = ctk.CTkFrame(self._segments_frame, fg_color="transparent")
         row.pack(fill=tk.X, pady=2)
+
+        # ── Drag handle ─────────────────────────────────────────────────
+        # Grab and drag up/down to reorder segments without deleting them
+        handle = ctk.CTkLabel(row, text="⠿", width=22,
+                              font=ctk.CTkFont(size=14), text_color=MUTED)
+        handle.pack(side=tk.LEFT, padx=(0, 2))
+        handle.bind("<Button-1>",       lambda e, i=seg_idx: self._drag_start(e, i))
+        handle.bind("<B1-Motion>",      self._drag_motion)
+        handle.bind("<ButtonRelease-1>", self._drag_end)
 
         ctk.CTkLabel(row, text=f"Seg {idx}:", width=50,
                      font=ctk.CTkFont(size=12)).pack(side=tk.LEFT)
@@ -265,8 +294,7 @@ class SyntheticPoolDialog:
         }
         self._segment_rows.append(info)
 
-        # Wire type change callback with captured index
-        seg_idx = len(self._segment_rows) - 1
+        # Wire type change callback
         type_menu.configure(
             command=lambda v, i=seg_idx: self._on_seg_type_change(i))
 
@@ -293,6 +321,81 @@ class SyntheticPoolDialog:
             info["row"].destroy()
         self._segment_rows.clear()
         self._update_preview()
+
+    # ------------------------------------------------------------------
+    # Drag-to-reorder
+    # ------------------------------------------------------------------
+
+    def _drag_start(self, event, idx: int):
+        """Record which segment row began being dragged."""
+        self._drag_idx = idx
+
+    def _drag_motion(self, event):
+        """Highlight the drop target while the user is dragging."""
+        if self._drag_idx is None:
+            return
+        y_abs = event.widget.winfo_rooty() + event.y
+        target = self._get_drop_idx(y_abs)
+        for i, info in enumerate(self._segment_rows):
+            # Highlight the row we would land on (but not the row being dragged)
+            if i == target and i != self._drag_idx:
+                info["row"].configure(fg_color="gray30")
+            else:
+                info["row"].configure(fg_color="transparent")
+
+    def _drag_end(self, event):
+        """Complete the drag — reorder segments if the position changed."""
+        if self._drag_idx is None:
+            return
+        from_idx = self._drag_idx
+        self._drag_idx = None
+        y_abs = event.widget.winfo_rooty() + event.y
+        to_idx = self._get_drop_idx(y_abs)
+        # Reset any row highlights
+        for info in self._segment_rows:
+            info["row"].configure(fg_color="transparent")
+        if from_idx != to_idx:
+            self._reorder_segments(from_idx, to_idx)
+
+    def _get_drop_idx(self, y_abs: int) -> int:
+        """Return the segment index whose row midpoint is closest to y_abs (screen coords)."""
+        best_idx = 0
+        best_dist = float("inf")
+        for i, info in enumerate(self._segment_rows):
+            try:
+                row_y = info["row"].winfo_rooty()
+                row_h = info["row"].winfo_height()
+                mid = row_y + row_h // 2
+                dist = abs(y_abs - mid)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_idx = i
+            except Exception:
+                pass
+        return best_idx
+
+    def _reorder_segments(self, from_idx: int, to_idx: int):
+        """Move the segment at from_idx to to_idx, then rebuild the entire segment UI.
+
+        Rebuilding from scratch is simpler and safer than trying to re-pack
+        CTk frames in place — it also renumbers the 'Seg N:' labels correctly.
+        """
+        # Snapshot current segment data
+        snapshot = []
+        for info in self._segment_rows:
+            snapshot.append({
+                "type": info["type_var"].get().lower(),
+                "value": info["entry_var"].get(),
+            })
+        # Move the dragged item to its new position
+        item = snapshot.pop(from_idx)
+        snapshot.insert(to_idx, item)
+        # Destroy existing rows and rebuild in new order
+        for info in self._segment_rows:
+            info["row"].destroy()
+        self._segment_rows.clear()
+        for snap in snapshot:
+            self._add_segment(snap["type"], snap["value"])
 
     def _update_preview(self):
         segments = self._read_segments(validate=False)
@@ -486,19 +589,36 @@ class SyntheticPoolDialog:
                 written = result["written"]
                 failed = result["failed"]
                 fpath = result["file"]
-                summary = f"Done! {written:,} sequences written to {fpath}"
-                if failed:
-                    summary += f" ({failed:,} filtered out)"
-                self._log(summary)
 
-                self._safe_after(lambda: messagebox.showinfo(
-                    "Generation Complete",
-                    f"Pool generated successfully!\n\n"
-                    f"Sequences written: {written:,}\n"
-                    + (f"Filtered out: {failed:,}\n" if failed else "")
-                    + f"\nOutput: {fpath}",
-                    parent=self.dialog,
-                ))
+                if written == 0 and failed > 0:
+                    # All sequences were rejected by composition filters
+                    self._log(
+                        f"⚠  All {failed:,} sequences were filtered out — "
+                        f"composition constraints are too strict.\n"
+                        f"   Try relaxing target % values or increasing tolerance."
+                    )
+                    self._safe_after(lambda: messagebox.showwarning(
+                        "No Sequences Written",
+                        f"All {failed:,} attempted sequences were filtered out.\n\n"
+                        f"Composition targets may be impossible to satisfy "
+                        f"given the current sequence length and fixed motifs.\n\n"
+                        f"Try: relaxing target %, increasing tolerance, "
+                        f"or shortening fixed segments.",
+                        parent=self.dialog,
+                    ))
+                else:
+                    summary = f"Done! {written:,} sequences written to {fpath}"
+                    if failed:
+                        summary += f" ({failed:,} filtered out)"
+                    self._log(summary)
+                    self._safe_after(lambda: messagebox.showinfo(
+                        "Generation Complete",
+                        f"Pool generated successfully!\n\n"
+                        f"Sequences written: {written:,}\n"
+                        + (f"Filtered out: {failed:,}\n" if failed else "")
+                        + f"\nOutput: {fpath}",
+                        parent=self.dialog,
+                    ))
             except Exception as e:
                 self._log(f"Error: {e}")
                 self._safe_after(lambda: messagebox.showerror(

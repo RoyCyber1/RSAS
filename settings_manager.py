@@ -5,8 +5,26 @@ Handles configuration persistence using JSON
 
 import copy
 import json
+import sys
+import threading
 from pathlib import Path
 from typing import Dict, Any, List
+
+
+# ---------------------------------------------------------------------------
+# User data directory — writable location for settings, recent files, outputs
+# ---------------------------------------------------------------------------
+
+def get_user_data_dir() -> Path:
+    """Return the writable user data directory for RSAS.
+
+    In a PyInstaller .app bundle the application directory is read-only.
+    We always use ``~/.rsas/`` as the data root so settings, recent-files
+    and default outputs survive across launches and updates.
+    """
+    data_dir = Path.home() / ".rsas"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
 
 
 # ---------------------------------------------------------------------------
@@ -335,7 +353,14 @@ class SettingsManager:
     """Manages application settings with JSON persistence"""
 
     def __init__(self, settings_file: str = "csv_output_settings.json"):
-        self.settings_file = Path(settings_file)
+        self._lock = threading.Lock()
+        sf = Path(settings_file)
+        if sf.is_absolute():
+            self.settings_file = sf
+        else:
+            # Store settings in the user data dir so they persist outside
+            # the (possibly read-only) application bundle.
+            self.settings_file = get_user_data_dir() / sf.name
         self.default_settings = self._get_default_settings()
         self.settings = self.load_settings()
 
@@ -345,7 +370,8 @@ class SettingsManager:
 
     def get_temperatures(self) -> List[int]:
         """Return the configured folding temperatures list."""
-        return list(self.settings.get("folding_temperatures", DEFAULT_TEMPERATURES))
+        with self._lock:
+            return list(self.settings.get("folding_temperatures", DEFAULT_TEMPERATURES))
 
     def set_temperatures(self, temps: List[int]):
         """Set custom folding temperatures (1-5 values).
@@ -356,14 +382,15 @@ class SettingsManager:
         temps = sorted(set(int(t) for t in temps))
         if not (1 <= len(temps) <= 5):
             raise ValueError("Must provide 1-5 unique temperatures")
-        self.settings["folding_temperatures"] = temps
-        # Ensure csv_output_columns has all keys for the new temperatures
-        new_cols = _generate_temp_columns(temps)
-        existing = self.settings.get("csv_output_columns", {})
-        for k, default_val in new_cols.items():
-            if k not in existing:
-                existing[k] = default_val
-        self.settings["csv_output_columns"] = existing
+        with self._lock:
+            self.settings["folding_temperatures"] = temps
+            # Ensure csv_output_columns has all keys for the new temperatures
+            new_cols = _generate_temp_columns(temps)
+            existing = self.settings.get("csv_output_columns", {})
+            for k, default_val in new_cols.items():
+                if k not in existing:
+                    existing[k] = default_val
+            self.settings["csv_output_columns"] = existing
         self.save_settings()
 
     # ------------------------------------------------------------------
@@ -422,7 +449,7 @@ class SettingsManager:
         """Load settings from JSON file or create with defaults"""
         if self.settings_file.exists():
             try:
-                with open(self.settings_file, 'r') as f:
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
                     loaded = json.load(f)
                     # Merge with defaults to ensure new settings are added
                     return self._merge_settings(self.default_settings, loaded)
@@ -468,29 +495,33 @@ class SettingsManager:
 
     def save_settings(self, settings: Dict[str, Any] = None):
         """Save settings to JSON file"""
-        if settings is None:
-            settings = self.settings
+        with self._lock:
+            if settings is None:
+                settings = copy.deepcopy(self.settings)
+            else:
+                settings = copy.deepcopy(settings)
 
         try:
-            with open(self.settings_file, 'w') as f:
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, indent=4)
             return True
-        except IOError as e:
+        except (IOError, TypeError, ValueError) as e:
             print(f"Error saving settings: {e}")
             return False
 
     def get_enabled_columns(self) -> list:
         """Get list of enabled column display names in order."""
-        columns = []
-        col_map = self.settings["csv_output_columns"]
-        temps = self.get_temperatures()
-        column_order = _generate_column_order(temps)
+        with self._lock:
+            columns = []
+            col_map = self.settings["csv_output_columns"]
+            temps = list(self.settings.get("folding_temperatures", DEFAULT_TEMPERATURES))
+            column_order = _generate_column_order(temps)
 
-        for key, display_name in column_order:
-            if col_map.get(key, False):
-                columns.append(display_name)
+            for key, display_name in column_order:
+                if col_map.get(key, False):
+                    columns.append(display_name)
 
-        return columns
+            return columns
 
     def update_column_setting(self, column_key: str, enabled: bool):
         """Update a specific column setting"""

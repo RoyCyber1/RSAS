@@ -40,6 +40,8 @@ def find_motif_occurrences(
 
     Returns list of dicts with start, end (0-based half-open), matched_seq.
     """
+    if not motif.strip():
+        return []
     seq_upper = sequence.upper().replace("T", "U")
     regex = _iupac_to_regex(motif)
     compiled = re.compile(regex)

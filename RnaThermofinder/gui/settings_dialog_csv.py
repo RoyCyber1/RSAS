@@ -11,7 +11,8 @@ import tkinter as tk
 from tkinter import simpledialog
 import customtkinter as ctk
 
-sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent.parent.parent.as_posix()))
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from settings_manager import SettingsManager, DEFAULT_TEMPERATURES
 
 
@@ -30,6 +31,7 @@ class _Tip:
         self.text = t
 
     def _show(self, _evt=None):
+        self._hide()  # clean up any existing tooltip first
         if not self.text:
             return
         x = self.widget.winfo_rootx() + 20
@@ -37,15 +39,22 @@ class _Tip:
         self._tw = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
+        is_dark = ctk.get_appearance_mode().lower() == "dark"
+        bg = "#2b2b2b" if is_dark else "#f8f9fa"
+        fg = "#dcdcdc" if is_dark else "#2c3e50"
         tk.Label(tw, text=self.text, justify=tk.LEFT,
-                 background="#f8f9fa", relief=tk.SOLID, borderwidth=1,
-                 foreground="#2c3e50", font=("Segoe UI", 9),
+                 background=bg, relief=tk.SOLID, borderwidth=1,
+                 foreground=fg, font=("TkDefaultFont", 10),
                  padx=6, pady=4).pack()
 
     def _hide(self, _evt=None):
-        if self._tw:
-            self._tw.destroy()
-            self._tw = None
+        tw = self._tw
+        self._tw = None
+        if tw:
+            try:
+                tw.destroy()
+            except tk.TclError:
+                pass
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +84,7 @@ class _DialogToast(ctk.CTkFrame):
         try:
             self.place_forget()
             self.destroy()
-        except Exception:
+        except tk.TclError:
             pass
 
 
@@ -442,7 +451,7 @@ class SettingsDialogCSVModern:
         self.dialog.minsize(780, 700)
         self.dialog.resizable(True, True)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self._create_widgets()
 
@@ -450,6 +459,14 @@ class SettingsDialogCSVModern:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     # ─────────────────────────────────────────────────────────────────────
     def _toast(self, message: str, kind: str = "info", duration: int = 2500):
@@ -569,7 +586,7 @@ class SettingsDialogCSVModern:
         scroll = ctk.CTkScrollableFrame(parent, corner_radius=10)
         scroll.grid(row=row, column=0, sticky="nsew", pady=(0, 4))
 
-        current = self.settings_manager.settings["csv_output_columns"]
+        current = self.settings_manager.settings.get("csv_output_columns", {})
 
         for group_name, columns in self.COLUMN_GROUPS:
             self.group_columns[group_name] = columns
@@ -932,7 +949,8 @@ class SettingsDialogCSVModern:
         self.settings_manager.settings["calculation_settings"] = calc
 
         if self.settings_manager.save_settings():
-            self._toast("Output settings saved — calculations optimised", "success")
+            self._toast("Output settings saved — calculations optimised", "success",
+                       duration=1000)
             self.dialog.after(1200, self.dialog.destroy)
         else:
             self._toast("Failed to save settings", "error")

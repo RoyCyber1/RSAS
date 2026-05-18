@@ -298,8 +298,62 @@ def validate_descriptor(descriptor: DescriptorSpec) -> Optional[str]:
             if elem and isinstance(elem, SingleStrandedElement):
                 return f"Primed element '{token}' requires '{base}' to be a helix (h) or relational (r)."
 
-    if not descriptor.elements:
-        return "Add at least one element."
+    # Element names must start with the correct type prefix.
+    # RNArobo uses the FIRST CHARACTER of the element name to determine its type:
+    #   h → helix, s → single-stranded, r → relational
+    # A helix named "stem1" would silently be treated as single-stranded (starts with 's'),
+    # producing scientifically incorrect motif matches with no error from rnarobo.
+    _required_prefix: Dict[type, str] = {
+        HelixElement: "h",
+        SingleStrandedElement: "s",
+        RelationalElement: "r",
+    }
+    _type_label: Dict[type, str] = {
+        HelixElement: "helix (h)",
+        SingleStrandedElement: "single-stranded (s)",
+        RelationalElement: "relational (r)",
+    }
+    for elem in descriptor.elements:
+        if not elem.name:
+            return "All elements must have a name."
+        prefix = _required_prefix.get(type(elem))
+        if prefix and not elem.name.startswith(prefix):
+            label = _type_label.get(type(elem), type(elem).__name__)
+            return (
+                f"Element '{elem.name}' is a {label} element but its name does not start "
+                f"with '{prefix}'. RNArobo uses the first character to determine element "
+                f"type — rename it to something like '{prefix}1'."
+            )
+
+    # Numeric constraints must be non-negative
+    for elem in descriptor.elements:
+        if elem.mismatches < 0:
+            return f"Element '{elem.name}': mismatches must be ≥ 0 (got {elem.mismatches})."
+        if isinstance(elem, (HelixElement, RelationalElement)) and elem.mispairs < 0:
+            return f"Element '{elem.name}': mispairs must be ≥ 0 (got {elem.mispairs})."
+        if elem.insertions < 0:
+            return f"Element '{elem.name}': insertions must be ≥ 0 (got {elem.insertions})."
+
+    # Single-stranded elements: wildcard (*) must not be flanked by nucleotides
+    # on both sides (e.g. N*N, ACG*UU). RNArobo performs exponential backtracking
+    # on such patterns and the search will hang or fail.
+    for elem in descriptor.elements:
+        if not isinstance(elem, SingleStrandedElement):
+            continue
+        seq = elem.sequence
+        if '*' not in seq:
+            continue
+        first_star = seq.index('*')
+        last_star = len(seq) - 1 - seq[::-1].index('*')
+        has_before = first_star > 0          # characters before first *
+        has_after = last_star < len(seq) - 1  # characters after last *
+        if has_before and has_after:
+            return (
+                f"Single-stranded element '{elem.name}': the wildcard (*) cannot have "
+                f"nucleotides on both sides (e.g. 'N*N'). "
+                f"Place * only at the start or end of the sequence (e.g. 'NNN*' or '*NNN'), "
+                f"or use * alone to match any loop length."
+            )
 
     return None
 

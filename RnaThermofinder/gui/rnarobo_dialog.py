@@ -53,7 +53,7 @@ class RNAroboDialog:
         self.dialog.resizable(True, True)
         self.dialog.minsize(750, 650)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self._element_rows: list = []
 
@@ -65,6 +65,14 @@ class RNAroboDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     # ------------------------------------------------------------------
     # Widget creation
@@ -79,7 +87,11 @@ class RNAroboDialog:
                      font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 2))
         ctk.CTkLabel(main,
                      text="Search for structural RNA motifs (helices, loops, junctions, pseudoknots) in FASTA sequences",
-                     font=ctk.CTkFont(size=11), text_color=MUTED).pack(pady=(0, 8))
+                     font=ctk.CTkFont(size=11), text_color=MUTED).pack(pady=(0, 2))
+        ctk.CTkLabel(main,
+                     text="Rampasek et al. (2016) RNA motif search with data-driven element ordering. BMC Bioinformatics 17:216. doi:10.1186/s12859-016-1074-x",
+                     font=ctk.CTkFont(size=9), text_color=MUTED,
+                     wraplength=720, justify="center").pack(pady=(0, 8))
 
         # Binary status
         self.status_label = ctk.CTkLabel(
@@ -203,10 +215,9 @@ class RNAroboDialog:
                         variable=self.non_overlap_var, width=170
                         ).pack(side=tk.LEFT)
 
+        # Note: FASTA output (-f) is intentionally not exposed because
+        # the output parser only handles rnarobo's default tabular format.
         self.fasta_out_var = tk.BooleanVar(value=False)
-        ctk.CTkCheckBox(opt_row, text="FASTA output (-f)",
-                        variable=self.fasta_out_var, width=150
-                        ).pack(side=tk.LEFT)
 
         # N-ratio row
         nratio_row = ctk.CTkFrame(io_card, fg_color="transparent")
@@ -625,22 +636,41 @@ class RNAroboDialog:
         self._log("Starting RNArobo search...\n")
         self._results = None
 
+        # Capture all tkinter variable values here in the main thread.
+        # BooleanVar.get() is not thread-safe — reading it inside the
+        # worker thread risks stale or corrupted values.
+        both_strands = self.both_strands_var.get()
+        non_overlapping = self.non_overlap_var.get()
+        fasta_output = self.fasta_out_var.get()
+
         def run():
             try:
                 result = run_rnarobo(
                     descriptor,
                     seq_file,
-                    both_strands=self.both_strands_var.get(),
-                    non_overlapping=self.non_overlap_var.get(),
-                    fasta_output=self.fasta_out_var.get(),
+                    both_strands=both_strands,
+                    non_overlapping=non_overlapping,
+                    fasta_output=fasta_output,
                     nratio=nratio,
                     progress_callback=self._log,
                 )
 
                 self._results = result
 
-                if result.return_code != 0 and result.raw_stderr.strip():
-                    self._log(f"\nrnarobo stderr:\n{result.raw_stderr.strip()}")
+                # Always report a non-zero exit code so the user knows
+                # the search may have failed (e.g. bad descriptor syntax),
+                # even when rnarobo produced no stderr output.
+                if result.return_code != 0:
+                    if result.raw_stderr.strip():
+                        self._log(
+                            f"\nrnarobo error (exit {result.return_code}):\n"
+                            f"{result.raw_stderr.strip()}"
+                        )
+                    else:
+                        self._log(
+                            f"\nrnarobo exited with non-zero status "
+                            f"({result.return_code}) — check descriptor syntax."
+                        )
 
                 self._display_results(result)
 
@@ -689,6 +719,7 @@ class RNAroboDialog:
             return
 
         output_file = filedialog.asksaveasfilename(
+            parent=self.dialog,
             title="Save results as...",
             initialdir=str(Path.home() / "Downloads"),
             initialfile="rnarobo_results.tsv",
@@ -699,12 +730,16 @@ class RNAroboDialog:
         if not output_file:
             return
 
+        def _tsv(val: str) -> str:
+            """Sanitize a string for TSV output — remove embedded tabs/newlines."""
+            return str(val).replace("\t", " ").replace("\r", " ").replace("\n", " ")
+
         with open(output_file, "w") as fh:
             fh.write("Seq_Name\tFrom\tTo\tStrand\tDescription\tMatched_Elements\n")
             for m in self._results.matches:
                 strand = "-" if m.is_reverse else "+"
-                fh.write(f"{m.seq_name}\t{m.seq_from}\t{m.seq_to}\t"
-                         f"{strand}\t{m.description}\t{m.elements}\n")
+                fh.write(f"{_tsv(m.seq_name)}\t{m.seq_from}\t{m.seq_to}\t"
+                         f"{strand}\t{_tsv(m.description)}\t{_tsv(m.elements)}\n")
 
         self._log(f"\nResults exported to: {output_file}")
         messagebox.showinfo("Export Complete",

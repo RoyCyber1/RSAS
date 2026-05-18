@@ -17,11 +17,11 @@ import customtkinter as ctk
 
 # ── project imports ──────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from settings_manager import SettingsManager
+from settings_manager import SettingsManager, get_user_data_dir
 from RnaThermofinder.core import FastaParse, HairpinAnalysis
 
 # Dialog imports (CTk-based)
-from .settings_dialog import AnalysisSettingsDialog, PerformanceSettingsDialog, SettingsDialogModern
+from .settings_dialog import AnalysisSettingsDialog, PerformanceSettingsDialog
 from .settings_dialog_csv import SettingsDialogCSVModern
 from .sequence_settings_dialog import SequenceSettingsDialogModern
 from .upstream_extractor_dialog import SequenceExtractorDialog
@@ -29,6 +29,8 @@ from .quality_score_builder import QualityScoreBuilderDialog
 from .motif_finder_dialog import MotifFinderDialog
 from .synthetic_pool_dialog import SyntheticPoolDialog
 from .rnarobo_dialog import RNAroboDialog
+from .switch_finder_dialog import SwitchFinderDialog
+from .knotty_dialog import KnottyDialog
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -49,7 +51,7 @@ BADGE_BG      = "#e74c3c"
 RECENT_BG     = ("#ffffff", "#22272e")
 RECENT_HOVER  = ("#f5f7fa", "#2d333b")
 
-RECENT_FILES_PATH = Path(__file__).parent.parent.parent / ".recent_files.json"
+RECENT_FILES_PATH = get_user_data_dir() / ".recent_files.json"
 MAX_RECENT = 5
 
 
@@ -87,7 +89,7 @@ class Toast(ctk.CTkFrame):
         try:
             self.place_forget()
             self.destroy()
-        except Exception:
+        except tk.TclError:
             pass
 
 
@@ -148,9 +150,9 @@ class RSASApp:
         perf = self.csv_settings_manager.settings.get("performance_settings", {})
         self.analysis_settings["num_cpu_cores"] = perf.get("num_cpu_cores", 1)
 
-        # Output dir
-        project_root = Path(__file__).parent.parent.parent
-        self.output_dir = project_root / "Data" / "Outputs"
+        # Output dir — use user data dir so outputs are writable even in
+        # a frozen PyInstaller / .app bundle (which is read-only on macOS).
+        self.output_dir = get_user_data_dir() / "Data" / "Outputs"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Recent files
@@ -226,6 +228,8 @@ class RSASApp:
             ("upstream", "Sequence Extractor", "\u21c5"),
             ("pool",     "Synthetic Pool",     "\u2261"),
             ("rnarobo",  "RNArobo Search",     "\u2316"),
+            ("switch",   "Switch Finder",      "\u21c6"),
+            ("knotty",  "Pseudoknot Finder",  "\u2297"),
         ]
         ctk.CTkLabel(self._sidebar, text="NAVIGATION",
                      font=ctk.CTkFont(size=10, weight="bold"),
@@ -270,6 +274,8 @@ class RSASApp:
         self._build_upstream_page()
         self._build_pool_page()
         self._build_rnarobo_page()
+        self._build_switch_page()
+        self._build_knotty_page()
 
         # Show default page
         self._show_page("analyze")
@@ -301,7 +307,9 @@ class RSASApp:
         self._pages["analyze"] = page
 
         page.grid_columnconfigure(0, weight=1)
-        page.grid_rowconfigure(3, weight=1)  # log area grows
+        # Row 4 (log) grows; row 3 (progress) stays fixed height
+        page.grid_rowconfigure(3, weight=0)
+        page.grid_rowconfigure(4, weight=1)
 
         # ── File input section ───────────────────────────────────────────
         input_card = ctk.CTkFrame(page, corner_radius=10)
@@ -473,7 +481,7 @@ class RSASApp:
              "Configure hairpin scoring criteria, weights, tolerance, and profiles",
              self.open_quality_score_builder),
             ("Full-Length Quality Score Builder",
-             "Configure full-length scoring criteria for cancer research workflows",
+             "Configure full-length sequence scoring criteria, weights, tolerance, and profiles",
              self.open_full_length_quality_score_builder),
             ("Output Columns",
              "Choose which columns to export to CSV / Excel",
@@ -567,6 +575,44 @@ class RSASApp:
             command=self._open_rnarobo_dialog,
         ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
 
+    def _build_switch_page(self):
+        page = ctk.CTkFrame(self._content, fg_color="transparent")
+        self._pages["switch"] = page
+        page.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(page, text="Switch Finder",
+                     font=ctk.CTkFont(size=18, weight="bold"),
+                     ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 4))
+        ctk.CTkLabel(page, text="Detect temperature-dependent structural switching around a motif (thermometer / riboswitch behaviour)",
+                     font=ctk.CTkFont(size=12), text_color=MUTED,
+                     ).grid(row=1, column=0, sticky="w", padx=24, pady=(0, 12))
+
+        ctk.CTkButton(
+            page, text="Open Switch Finder", width=220, height=42,
+            fg_color=ACCENT, hover_color=ACCENT_HOVER,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._open_switch_finder,
+        ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
+
+    def _build_knotty_page(self):
+        page = ctk.CTkFrame(self._content, fg_color="transparent")
+        self._pages["knotty"] = page
+        page.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(page, text="Pseudoknot Finder",
+                     font=ctk.CTkFont(size=18, weight="bold"),
+                     ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 4))
+        ctk.CTkLabel(page, text="Predict RNA pseudoknots using Knotty (DP09 energy model)",
+                     font=ctk.CTkFont(size=12), text_color=MUTED,
+                     ).grid(row=1, column=0, sticky="w", padx=24, pady=(0, 12))
+
+        ctk.CTkButton(
+            page, text="Open Pseudoknot Finder", width=220, height=42,
+            fg_color=ACCENT, hover_color=ACCENT_HOVER,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._open_knotty_dialog,
+        ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
+
     # ──────────────────────────────────────────────────────────────────────
     # Drag-and-drop (tkdnd fallback: OS file drop via tkinter)
     # ──────────────────────────────────────────────────────────────────────
@@ -580,7 +626,10 @@ class RSASApp:
             pass  # DnD not available — Browse button still works
 
     def _on_file_drop(self, event):
-        path = event.data.strip().strip("{}")
+        path = event.data.strip()
+        # TkDND on Windows wraps paths with spaces in braces
+        if path.startswith("{") and path.endswith("}"):
+            path = path[1:-1]
         if os.path.isfile(path):
             self.file_path_var.set(path)
             self._add_recent_file(path)
@@ -660,7 +709,8 @@ class RSASApp:
             self._add_recent_file(path)
             self._toast(f"Loaded: {Path(path).name}", "info")
         else:
-            self._recent_files.remove(path)
+            if path in self._recent_files:
+                self._recent_files.remove(path)
             self._save_recent_files()
             self._rebuild_recent_files_ui()
             self._toast("File no longer exists", "warning")
@@ -741,11 +791,24 @@ class RSASApp:
         dialog = RNAroboDialog(self.root)
         dialog.show()
 
+    def _open_switch_finder(self):
+        # Pass loaded sequences so the user doesn't have to re-load a file
+        seqs = [{"name": s[0], "sequence": s[1]} for s in self.sequences] if self.sequences else []
+        dialog = SwitchFinderDialog(self.root, sequences=seqs,
+                                    settings_manager=self.csv_settings_manager)
+        dialog.show()
+
+    def _open_knotty_dialog(self):
+        seqs = [{"name": s[0], "sequence": s[1]} for s in self.sequences] if self.sequences else []
+        dialog = KnottyDialog(self.root, sequences=seqs)
+        dialog.show()
+
     # ──────────────────────────────────────────────────────────────────────
     # File browsing
     # ──────────────────────────────────────────────────────────────────────
     def browse_file(self):
         filename = filedialog.askopenfilename(
+            parent=self.root,
             title="Select sequence file",
             filetypes=[
                 ("FASTA files", "*.fasta *.fa"),
@@ -790,6 +853,10 @@ class RSASApp:
         self.export_btn.configure(state=tk.DISABLED)
 
     def run_analysis(self):
+        if getattr(self, '_analysis_running', False):
+            self._toast("Analysis already in progress", "warning")
+            return
+
         file_path = self.file_path_var.get()
         if not file_path:
             self._toast("Please select a file first", "warning")
@@ -798,6 +865,7 @@ class RSASApp:
             self._toast("Selected file does not exist", "error")
             return
 
+        self._analysis_running = True
         self._add_recent_file(file_path)
         self.analyze_btn.configure(state=tk.DISABLED)
         self.clear_output()
@@ -917,6 +985,7 @@ class RSASApp:
             self.root.after(0, lambda: self._toast(f"Error: {err_msg}", "error", 6000))
 
         finally:
+            self._analysis_running = False
             def _cleanup():
                 self.analyze_btn.configure(state=tk.NORMAL)
                 try:
@@ -1007,9 +1076,10 @@ class RSASApp:
 
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            default_filename = f"rna_results_{timestamp}.xlsx"
+            default_filename = f"rsas_results_{timestamp}.xlsx"
 
             output_file = filedialog.asksaveasfilename(
+                parent=self.root,
                 title="Save Results As",
                 defaultextension=".xlsx",
                 filetypes=[
@@ -1048,7 +1118,8 @@ class RSASApp:
             self._toast(f"Exported: {Path(output_file).name}", "success")
 
             if messagebox.askyesno("Open Folder?",
-                                   "Open the folder containing the file?"):
+                                   "Open the folder containing the file?",
+                                   parent=self.root):
                 self._open_folder(Path(output_file).parent)
 
         except Exception as e:

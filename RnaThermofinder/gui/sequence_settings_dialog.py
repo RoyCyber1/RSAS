@@ -36,7 +36,7 @@ class _DialogToast(ctk.CTkFrame):
         try:
             self.place_forget()
             self.destroy()
-        except Exception:
+        except tk.TclError:
             pass
 
 # Class for the sequence settings dialog with a modern look
@@ -61,7 +61,7 @@ class SequenceSettingsDialogModern:
         self.dialog.geometry("720x520")
         self.dialog.resizable(False, False)
         self.dialog.transient(self.parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self._create_widgets()
         self._load_current_settings()
@@ -73,6 +73,14 @@ class SequenceSettingsDialogModern:
         self.dialog.geometry(f"+{x}+{y}")
 
         self.dialog.wait_window()
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     def _toast(self, message: str, kind: str = "info", duration: int = 2500):
         _DialogToast(self.dialog, message, kind, duration).show()
@@ -206,6 +214,6 @@ class SequenceSettingsDialogModern:
             "append_position": self.append_position_var.get(),
         }
         self.settings_manager.save_settings()
-        self._toast("Sequence processing settings saved", "success")
+        self._toast("Sequence processing settings saved", "success", duration=1000)
         # Close dialog after short delay so user sees the toast
         self.dialog.after(1200, self.dialog.destroy)

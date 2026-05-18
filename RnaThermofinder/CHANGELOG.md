@@ -4,6 +4,104 @@ All notable changes to RSAS (RNA Structure Analysis Suite) will be documented he
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0] - 2026-03-23
+
+### Added
+- **Pseudoknot Finder (Knotty)**: new sidebar page and dialog for pseudoknot prediction using the Knotty engine (Jabbari et al., Bioinformatics 2018). Wraps the Knotty binary via subprocess, supports batch FASTA input, reports dot-bracket structure with pseudoknot brackets (`[]`, `{}`), MFE energy, and pseudoknot detection flag. Includes CSV export with formula injection sanitization, configurable max sequence length (default 500 nt), and per-sequence timeout (default 120s)
+- **Switch Finder**: new sidebar page and dialog for RNA thermometer and riboswitch candidate detection via sequence truncation and temperature-dependent folding. Truncates sequence at motif boundary (upstream, downstream, or both directions), folds at each temperature with ViennaRNA, computes paired% switch score (MFE) and accessibility switch score (PF). Classifies hits as Strong/Moderate/Weak thermometer, Riboswitch candidate, Accessible, or No switch. Includes partner extraction, CSV export, and threaded batch processing
+
+### Fixed
+
+#### Critical (scientifically wrong)
+- **RNArobo FASTA output silently returned 0 matches**: GUI exposed a `-f` (FASTA output) checkbox, but the output parser only handles tabular format. FASTA output produced zero parsed results with no error. Removed the checkbox from the GUI
+- **Riboswitch classification checked only T_low paired%**: code checked `paired_pct(T_low) >= 70%` but documentation stated "paired at all temps." Now verifies `paired_pct >= 70%` at every temperature in the series
+- **Switch Finder flank parameters swapped for downstream direction**: `flank_3prime` and `flank_5prime` had opposite meaning depending on direction, producing incorrect truncation windows for downstream analysis. Renamed to direction-neutral `flank_past_motif` and `context_limit`
+
+#### High
+- **`0.0 or -999.0` Python falsy bug** (switch_finder.py): switch score of exactly 0.0 was treated as -999.0 in "both" direction comparison due to `or` short-circuit. Fixed with explicit `is not None` check
+- **O(n^2) memory for BPP matrix** (switch_finder.py): dense `np.zeros((n,n))` replaced with `np.zeros(n)` sparse accumulation. For 10,000 nt: ~800MB -> ~80KB
+- **Knotty help text had malformed pseudoknot example**: `((([[..))..]]` has mismatched parentheses. Corrected to valid H-type pseudoknot notation
+- **Silent T->U conversion in Knotty**: DNA sequences were converted to RNA with no user notification. Now logs conversion count when thymines are detected
+
+#### Medium
+- **Single-temperature switch analysis silently produced N/A**: changed validation to require >= 2 temperatures with descriptive ValueError
+- **Classification threshold magic numbers duplicated**: extracted to named constants (`STRONG_THERMO_THRESHOLD`, etc.) and single `_classify_switch()` helper
+- **Progress callback flooding UI**: 1000+ sequences scheduled 1000+ `after(0,...)` callbacks. Throttled to log every 10%
+- **FASTA parser accepted comment lines**: lines starting with `;` were included as sequence data. Added skip for blank and comment lines
+- **Knotty energy regex fallback too greedy**: standalone energy parser could match diagnostic numbers. Tightened to require number-only lines
+- **Knotty IUPAC ambiguity codes silently stripped**: now warns user when N/R/Y/etc. bases are removed from sequences
+- **Knotty missing simfold/params in PyInstaller build**: added `--add-data` for energy parameter files in build_app.py
+- **Switch Finder sort key non-deterministic**: added `start` position as secondary sort key
+- **macOS `grab_set()` timing bug in 10 dialog classes**: replaced immediate `grab_set()` with `after(100, _try_grab)` across all 8 dialog files
+- **No cancel button for batch analysis**: added cancel mechanism (threading.Event + Cancel button) to Switch Finder and Knotty dialogs
+
+#### Low
+- **SettingsManager thread safety**: added `threading.Lock` around get/set temperatures, save_settings, and get_enabled_columns
+- **Missing `openpyxl` hidden import** in PyInstaller build config
+- **Knotty help text missing DP09 ligand caveat**: added note that energy model does not account for ligand-RNA interactions
+- **Double T->U conversion**: FASTA parser and wrapper both converted; consolidated to wrapper only
+- **CSV injection sanitization**: added `_sanitize_csv()` with quote-prefix for `=`, `+`, `-`, `@` in Knotty and Switch Finder CSV export
+
+## [3.0.1] - 2026-03-11
+
+### Added
+- **RNArobo Search integration**: new sidebar page and dialog for structural motif searching using the RNArobo engine. Includes a descriptor builder GUI with preset motifs (Simple Hairpin, Two-Stem Junction, Thermometer-like), auto-fill from motif map, real-time descriptor preview, threaded search execution, and TSV export of results
+- `get_user_data_dir()` helper in `settings_manager.py` — all mutable data (settings, recent files, default outputs) now stored in `~/.rsas/` so the app works correctly when distributed as a read-only macOS `.app` bundle
+- macOS DMG installer with `Install RSAS.sh` script that auto-strips quarantine flags
+
+### Fixed
+
+#### Critical
+- **`_build_pair_map` crash on sub-sliced structures** (`HairpinAnalysis.py`): window-cut sub-structures from `find_rbs_containing_hairpin` and `find_aug_containing_hairpin` could have unmatched closing brackets, causing an `IndexError` when popping from an empty stack. Added guard: `if not stack: continue`
+- **Broken `pip install` entry point** (`main.py` / `setup.py`): `main.py` had no `main()` function, and root-level modules (`main.py`, `settings_manager.py`) were not included in pip installs because `find_packages()` only finds directories with `__init__.py`. Added `def main()` wrapper and `py_modules=["main", "settings_manager"]` to `setup.py`
+
+#### High — macOS UI freezes
+- **8 messagebox calls missing `parent=`** (`quality_score_builder.py`): on macOS, messageboxes without a parent appear behind the modal dialog, freezing the entire application with no way to dismiss them. Added `parent=self.dialog` to all 8 calls
+- **2 file dialog calls missing `parent=`** (`RNAGUI.py`): `filedialog.askopenfilename` and `filedialog.asksaveasfilename` could appear behind the main window. Added `parent=self.root`
+- **1 confirmation dialog missing `parent=`** (`RNAGUI.py`): `messagebox.askyesno` in the clear-results handler. Added `parent=self.root`
+- **`quality_score_builder.py` window close leak**: closing via the X button bypassed `grab_release()`, leaving the grab active and blocking all input. Added proper `_close()` method with `grab_release()` before `destroy()`, and `WM_DELETE_WINDOW` protocol handler
+
+#### High — Data correctness
+- **T→U normalization missing in `calculate_composition`** (`analysis_helpers.py`): DNA sequences (containing T) passed through without conversion, producing incorrect AU/GC/GU composition percentages. Added `.upper().replace("T", "U")`
+- **Non-deterministic output sort** (`HairpinAnalysis.py`): results with tied quality scores could appear in different orders across runs, breaking reproducibility for publication. Added secondary sort key by sequence name
+- **Concurrent analysis data corruption** (`RNAGUI.py`): `Cmd+R` keyboard shortcut called `run_analysis()` directly, bypassing the disabled-button check. Two concurrent analysis threads would write to the same `self.results`, progress bar, and output files. Added `_analysis_running` flag guard
+- **Python 3.8 falsely advertised** (`setup.py`): code uses `list[str]` and `dict[str, ...]` syntax (PEP 585, requires Python 3.9+), but `setup.py` declared `python_requires=">=3.8"`. Updated to `">=3.9"` and removed Python 3.8 from classifiers
+
+#### High — PyInstaller / distribution
+- **Output directory inside read-only `.app` bundle** (`RNAGUI.py`): `Path(__file__).parent.parent.parent / "Data" / "Outputs"` resolves inside the `.app` on macOS, causing write failures. Now uses `get_user_data_dir() / "Data" / "Outputs"`
+- **Recent files path inside read-only `.app` bundle** (`RNAGUI.py`): same issue with `.recent_files.json`. Now uses `get_user_data_dir() / ".recent_files.json"`
+- **Settings file uses unpredictable CWD** (`settings_manager.py`): `Path("csv_output_settings.json")` resolves relative to CWD, which is unpredictable in PyInstaller. Now defaults to `get_user_data_dir() / filename`
+- **Deprecated `--deep` codesign flag** (`build_app.py`): Apple deprecated the `--deep` flag. Removed it from the `codesign` call
+- **Import ordering bug** (`HairpinAnalysis.py`): `sys.path.insert()` was placed *after* `from settings_manager import SettingsManager`, so the module could only be imported if something else had already modified `sys.path`. Moved path setup before all project imports
+- **Missing `sys.path` setup** (`settings_dialog.py`): imported `from settings_manager import DEFAULT_TEMPERATURES` without adding the project root to `sys.path`. Only worked by accident when imported through `RNAGUI.py`. Added explicit path setup
+
+#### Medium
+- **3 silent partition function exceptions** (`HairpinAnalysis.py`): `except Exception: pass` blocks at PF computation sites silently swallowed errors, making failures invisible. Changed to log warnings to stderr
+- **Silent motif analysis exception** (`HairpinAnalysis.py`): broad `except Exception: pass` hid failures in motif analysis. Changed to log with sequence name to stderr
+- **Mutable default arguments** (`HairpinAnalysis.py`): `temps=[25,37,42]` and `temps: List[int] = [25, 37, 42]` — mutable defaults shared across calls. Changed to `temps=(25,37,42)` and `Optional[List[int]] = None` with guard
+- **Empty motif guard** (`motif_finder.py`): empty or whitespace-only motif pattern caused unnecessary processing. Added early return for empty motifs
+- **Fractional temperatures silently truncated** (`settings_dialog.py`): float values like `37.5` were silently cast to `int`. Now explicitly rejected with an error message
+- **IntVar crash on CPU cores** (`settings_dialog.py`): non-integer input in the CPU cores field raised `TclError`. Wrapped in try/except with user-friendly error message
+- **Tooltip dark mode** (`settings_dialog_csv.py`): hardcoded light-mode colors (`#f8f9fa` background) appeared as bright white boxes in dark mode. Now detects appearance mode and uses appropriate colors
+- **Tooltip Toplevel leak** (`settings_dialog_csv.py`): rapidly hovering between elements could create multiple tooltip windows. Added `_hide()` cleanup before creating new tooltip, with `TclError` guard on destroy
+- **KeyError on corrupted settings** (`settings_dialog_csv.py`): direct dict access `self.settings_manager.settings["csv_output_columns"]` could crash on corrupted settings files. Changed to `.get("csv_output_columns", {})`
+- **Toast race condition** (`settings_dialog_csv.py`, `sequence_settings_dialog.py`): toast duration (3500ms) exceeded dialog destroy timing (1200ms), causing `TclError` on dismiss. Reduced to `duration=1000`
+- **Drag-and-drop path corruption** (`RNAGUI.py`): `strip("{}")` would strip any of those characters from anywhere in the path. Changed to proper brace-pair stripping: `if path.startswith("{") and path.endswith("}"): path = path[1:-1]`
+- **`_open_recent` ValueError** (`RNAGUI.py`): `self._recent_files.remove(path)` could raise `ValueError` if path was already removed. Added existence check before removal
+- **`.as_posix()` in sys.path** (`settings_dialog_csv.py`): used `.as_posix()` which produces forward-slash paths on Windows. Changed to standard `str(Path(...))`
+
+#### Low
+- **Toast `_dismiss` exception scope too broad** (`RNAGUI.py`, `settings_dialog_csv.py`, `sequence_settings_dialog.py`): `except Exception` in toast dismiss handlers caught everything; narrowed to `except tk.TclError`
+- **Unused import** (`RNAGUI.py`): removed unused `SettingsDialogModern` import
+- **JSON I/O encoding** (`settings_manager.py`): missing `encoding='utf-8'` on file open calls, could cause encoding issues on some systems. Added explicit encoding
+- **Save error handling** (`settings_manager.py`): only caught `IOError`; added `TypeError` and `ValueError` for robustness
+
+### Known Issues (deferred — require design decisions)
+- `quality_scoring.py`: weight clamping at `max(1.0)` — needs decision on whether to allow fractional weights
+- `quality_scoring.py`: N/A metrics count as 0 in denominator — needs decision on scoring methodology
+- `settings_manager.py`: `set_temperatures()` does not auto-update scoring profiles — needs migration strategy
+- `sys.path` hacks across 5 files — functional but inelegant; proper fix requires moving `settings_manager.py` into the package
+
 ## [3.0.0] - 2025-02-23
 
 ### Added

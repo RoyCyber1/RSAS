@@ -3,5 +3,7 @@
 from . import analysis_helpers
 from . import motif_finder
 from . import synthetic_pool_generator
+from . import switch_finder
+from . import knotty_wrapper
 
-__all__ = ['analysis_helpers', 'motif_finder', 'synthetic_pool_generator']
+__all__ = ['analysis_helpers', 'motif_finder', 'synthetic_pool_generator', 'switch_finder', 'knotty_wrapper']

@@ -3,9 +3,13 @@ Settings dialogs for analysis parameters and performance.
 """
 
 import os
+import sys
 import tkinter as tk
+from pathlib import Path
+
 import customtkinter as ctk
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from settings_manager import DEFAULT_TEMPERATURES
 
 ACCENT = "#2980b9"
@@ -25,7 +29,7 @@ class AnalysisSettingsDialog:
         self.dialog.geometry("620x560")
         self.dialog.resizable(False, False)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self.settings = current_settings or {
             'hairpin_detection_method': 'terminal',
@@ -38,6 +42,14 @@ class AnalysisSettingsDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     def _create_widgets(self):
         main = ctk.CTkFrame(self.dialog, fg_color="transparent")
@@ -209,7 +221,8 @@ class AnalysisSettingsDialog:
             self._temp_status_label.configure(text=f"{n}/{self.MAX_TEMPS} temperatures")
 
     def _get_temps_from_ui(self):
-        """Parse temp entries, deduplicate, sort. Returns list or None."""
+        """Parse temp entries, deduplicate, sort. Returns list or None.
+        Only whole-number (integer) temperatures are accepted."""
         raw = []
         for _, var in self._temp_entries:
             txt = var.get().strip()
@@ -219,13 +232,15 @@ class AnalysisSettingsDialog:
                 val = float(txt)
                 if val <= 0:
                     return None  # Non-positive
-                raw.append(int(val) if val == int(val) else val)
+                if val != int(val):
+                    return None  # Fractional temperatures not supported
+                raw.append(int(val))
             except ValueError:
                 return None
         if not raw:
             return None
         # Deduplicate and sort
-        temps = sorted(set(int(t) for t in raw))
+        temps = sorted(set(raw))
         if len(temps) < 1 or len(temps) > self.MAX_TEMPS:
             return None
         return temps
@@ -277,7 +292,7 @@ class PerformanceSettingsDialog:
         self.dialog.geometry("480x400")
         self.dialog.resizable(False, False)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self._create_widgets()
 
@@ -286,6 +301,14 @@ class PerformanceSettingsDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     def _create_widgets(self):
         main = ctk.CTkFrame(self.dialog, fg_color="transparent")
@@ -340,7 +363,14 @@ class PerformanceSettingsDialog:
                       command=self._save_settings).pack(side=tk.RIGHT)
 
     def _save_settings(self):
-        num_cores = max(1, min(self.cpu_cores_var.get(), self.system_cores))
+        try:
+            num_cores = max(1, min(self.cpu_cores_var.get(), self.system_cores))
+        except (tk.TclError, ValueError):
+            from tkinter import messagebox
+            messagebox.showerror("Invalid Input",
+                                 "CPU cores must be a positive integer.",
+                                 parent=self.dialog)
+            return
 
         if self.csv_settings_manager:
             perf = self.csv_settings_manager.settings.setdefault("performance_settings", {})

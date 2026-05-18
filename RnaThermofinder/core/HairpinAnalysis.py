@@ -1,13 +1,15 @@
 from pathlib import Path
 import os
+import sys
 import time
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import RNA
 import numpy as np
 from typing import List, Tuple, Callable, Optional, Dict, Any
 import csv
 from multiprocessing import Pool
-import sys
 
 from RnaThermofinder.utils.analysis_helpers import calculate_composition
 from RnaThermofinder.utils.analysis_helpers import build_csv_row
@@ -17,8 +19,6 @@ from RnaThermofinder.utils.quality_scoring import (
     build_hairpin_metrics, build_full_metrics, build_metric_range_keys,
 )
 from settings_manager import SettingsManager
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
 def get_terminal_hairpin_with_tail(sequence, structure):
@@ -327,6 +327,8 @@ def _build_pair_map(structure):
         if c == '(':
             stack.append(i)
         elif c == ')':
+            if not stack:
+                continue  # unmatched ')' in sub-sliced structures
             j = stack.pop()
             pairs[j] = i
             pairs[i] = j
@@ -971,7 +973,7 @@ def _generic_range_check(value, settings, min_key, max_key):
 
 
 
-def hairpin_mfe_at_temps(hairpin_seq, temps=[25, 37, 42]):
+def hairpin_mfe_at_temps(hairpin_seq, temps=(25, 37, 42)):
     mfe_results = {}
 
     for temp in temps:
@@ -1151,8 +1153,10 @@ def calc_rbs_pf_accessibility(seq, rbs_seq, pf_result):
 
 
 def save_results_to_csv(results: List[Dict[str, Any]], output_file: Path,
-                        temps: List[int] = [25, 37, 42]) -> None:
+                        temps: Optional[List[int]] = None) -> None:
     """Save results to CSV file"""
+    if temps is None:
+        temps = [25, 37, 42]
     import csv
 
     with open(output_file, "w", newline="") as f:
@@ -1249,8 +1253,8 @@ def _analyze_single_sequence(args):
                 pf_full[t] = pf_full_batch[t]
                 pf_full_ensemble[t] = pf_full[t]['ensemble_energy']
                 pf_full_mean_paired[t] = pf_full[t]['mean_paired_prob']
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[RSAS] Warning: partition function (full sequence) failed for '{og_name}': {e}", file=sys.stderr)
 
     # Original sequence range checks (dynamic)
     calc_orig_temps = calc_settings.get("calculate_original_mfe_temps", False)
@@ -1324,8 +1328,8 @@ def _analyze_single_sequence(args):
                     pf_rbs_diffs[f"{temps[-1]}_{t_first}"] = pf_rbs_access[temps[-1]] - base_acc
                 if len(temps) >= 3 and base_acc is not None and pf_rbs_access[temps[-2]] is not None:
                     pf_rbs_diffs[f"{temps[-2]}_{t_first}"] = pf_rbs_access[temps[-2]] - base_acc
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[RSAS] Warning: RBS PF accessibility failed for '{og_name}': {e}", file=sys.stderr)
 
     # Hairpin Detection (uses base_temp structure)
     hairpin_method = settings.get('hairpin_detection_method', 'terminal')
@@ -1394,8 +1398,8 @@ def _analyze_single_sequence(args):
             for t in temps:
                 pf_hp_ensemble[t] = pf_hp_batch[t]['ensemble_energy']
                 pf_hp_mean_paired[t] = pf_hp_batch[t]['mean_paired_prob']
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[RSAS] Warning: partition function (hairpin) failed for '{og_name}': {e}", file=sys.stderr)
 
     # Base pair composition
     AU, GC, GU = base_pair_percentages(hairpin_seq, hairpin_struct)
@@ -1525,7 +1529,8 @@ def _analyze_single_sequence(args):
                 pf_window_info=pf_window_info,
             )
             result_data.update(motif_result["summary"])
-        except Exception:
+        except Exception as e:
+            print(f"[RSAS] Warning: motif analysis failed for '{og_name}': {e}", file=sys.stderr)
             result_data["motif_pattern"] = motif_pattern
             result_data["motif_count"] = 0
             result_data["motif_match_seq"] = "Error"
@@ -1863,7 +1868,7 @@ def calculate_results_final(
     # Sort by quality score (best candidates first)
     log(f"\n{'=' * 60}")
     log(f"Sorting results by quality score...")
-    results.sort(key=lambda x: x.get("hp_quality_score_weighted", 0), reverse=True)
+    results.sort(key=lambda x: (-x.get("hp_quality_score_weighted", 0), x.get("name", "")))
 
     top_candidates = [r for r in results if r.get("hp_quality_score_weighted", 0) >= 67]
     if top_candidates:

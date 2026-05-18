@@ -357,7 +357,7 @@ def compute_quality_score(result_data, profile_dict, pf_available=False,
         value = result_data.get(data_key)
         min_val = float(crit.get("min", 0))
         max_val = float(crit.get("max", 0))
-        weight = max(1, int(crit.get("weight", 1)))
+        weight = max(1.0, float(crit.get("weight", 1)))
         tolerance = max(0.0, float(crit.get("tolerance", 0)))
 
         score = compute_criterion_score(value, min_val, max_val, tolerance)

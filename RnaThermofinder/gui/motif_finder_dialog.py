@@ -44,7 +44,7 @@ class MotifFinderDialog:
         self.dialog.resizable(True, True)
         self.dialog.minsize(480, 400)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
+        self.dialog.after(100, self._try_grab)
 
         self._create_widgets()
 
@@ -53,6 +53,14 @@ class MotifFinderDialog:
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
         self.dialog.geometry(f"+{x}+{y}")
+
+    def _try_grab(self):
+        """Safely grab focus — delayed for macOS compatibility."""
+        try:
+            if self.dialog.winfo_exists():
+                self.dialog.grab_set()
+        except tk.TclError:
+            pass
 
     def _create_widgets(self):
         main = ctk.CTkFrame(self.dialog, fg_color="transparent")
