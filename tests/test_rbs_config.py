@@ -1,5 +1,5 @@
 import pytest
-from RnaThermofinder.core.rbs_config import RbsConfig
+from RnaThermofinder.core.rbs_config import RbsConfig, resolve_anchor
 
 
 def test_defaults_match_current_behavior():
@@ -70,9 +70,6 @@ def test_from_settings_none_is_all_defaults():
     assert RbsConfig.from_settings(None) == RbsConfig()
 
 
-from RnaThermofinder.core.rbs_config import resolve_anchor
-
-
 def test_resolve_anchor_last_match():
     # two AUGs: at index 2 and index 11
     seq = "CCAUGCCCCCCAUGCC"
@@ -91,7 +88,7 @@ def test_resolve_anchor_first_match():
 
 
 def test_resolve_anchor_iupac_matches_alt_start_codon():
-    # DTG = [AGU]UG ; sequence has GUG, no AUG
+    # DTG: D = [AGU], so DTG matches AUG/GUG/UUG; sequence has GUG, no AUG
     seq = "CCCCCGUGCCCCC"
     cfg = RbsConfig(anchor_pattern="DTG")
     pos, length = resolve_anchor(seq, cfg)

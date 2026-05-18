@@ -72,6 +72,9 @@ def resolve_anchor(sequence: str, cfg: RbsConfig) -> Tuple[Optional[int], Option
     Returns (start_index, matched_length) for the first or last match per
     cfg.anchor_match_side, or (None, None) if the anchor pattern does not match.
     T is normalized to U before matching.
+
+    `cfg` is assumed to have passed `cfg.validate()`. Any anchor_match_side
+    value other than "last" produces first-match behavior without raising.
     """
     norm = sequence.upper().replace("T", "U")
     regex = iupac_to_regex(cfg.anchor_pattern)
