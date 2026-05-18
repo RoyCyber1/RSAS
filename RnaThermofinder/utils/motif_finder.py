@@ -19,8 +19,8 @@ _IUPAC_RNA = {
 }
 
 
-def _iupac_to_regex(pattern: str) -> str:
-    """Convert IUPAC pattern to regex."""
+def iupac_to_regex(pattern: str) -> str:
+    """Convert an IUPAC nucleotide pattern to a regex (T normalized to U)."""
     parts = []
     for ch in pattern.upper():
         replacement = _IUPAC_RNA.get(ch)
@@ -28,6 +28,10 @@ def _iupac_to_regex(pattern: str) -> str:
             raise ValueError(f"Invalid IUPAC character: '{ch}'")
         parts.append(replacement)
     return "".join(parts)
+
+
+# Backward-compatible alias (internal callers still use the underscore name).
+_iupac_to_regex = iupac_to_regex
 
 
 def find_motif_occurrences(
