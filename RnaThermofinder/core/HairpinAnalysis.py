@@ -562,6 +562,7 @@ def find_rbs_containing_hairpin(full_seq, full_structure, cfg=None):
     Args:
         full_seq: Complete RNA sequence
         full_structure: Dot-bracket structure of full sequence at 25°C
+        cfg: RbsConfig for anchor/window. Defaults to RbsConfig() when None.
 
     Returns:
         dict: {
@@ -609,7 +610,7 @@ def find_rbs_containing_hairpin(full_seq, full_structure, cfg=None):
     rbs_seq = rbs_result["rbs_seq"]
     # Use the anchor position to find the correct RBS occurrence nearby
     # (find() would return the FIRST occurrence, which may be wrong)
-    anchor_pos, _ = resolve_anchor(full_seq, cfg)
+    anchor_pos = rbs_result["aug_index"]
     search_region_start = max(0, anchor_pos - cfg.max_spacing) if anchor_pos is not None else 0
     rbs_start = full_seq.upper().find(rbs_seq.upper(), search_region_start)
 

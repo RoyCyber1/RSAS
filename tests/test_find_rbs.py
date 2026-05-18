@@ -70,3 +70,9 @@ def test_containing_hairpin_default_equals_no_config():
     struct = "." * len(S)
     assert (find_rbs_containing_hairpin(S, struct)
             == find_rbs_containing_hairpin(S, struct, RbsConfig()))
+
+
+def test_full_sequence_default_equals_no_config():
+    struct = "." * len(S)
+    assert (find_rbs_in_full_sequence(S, struct)
+            == find_rbs_in_full_sequence(S, struct, RbsConfig()))
