@@ -68,3 +68,45 @@ def test_from_settings_coerces_string_numbers():
 
 def test_from_settings_none_is_all_defaults():
     assert RbsConfig.from_settings(None) == RbsConfig()
+
+
+from RnaThermofinder.core.rbs_config import resolve_anchor
+
+
+def test_resolve_anchor_last_match():
+    # two AUGs: at index 2 and index 11
+    seq = "CCAUGCCCCCCAUGCC"
+    cfg = RbsConfig(anchor_match_side="last")
+    pos, length = resolve_anchor(seq, cfg)
+    assert pos == 11
+    assert length == 3
+
+
+def test_resolve_anchor_first_match():
+    seq = "CCAUGCCCCCCAUGCC"
+    cfg = RbsConfig(anchor_match_side="first")
+    pos, length = resolve_anchor(seq, cfg)
+    assert pos == 2
+    assert length == 3
+
+
+def test_resolve_anchor_iupac_matches_alt_start_codon():
+    # DTG = [AGU]UG ; sequence has GUG, no AUG
+    seq = "CCCCCGUGCCCCC"
+    cfg = RbsConfig(anchor_pattern="DTG")
+    pos, length = resolve_anchor(seq, cfg)
+    assert pos == 5
+    assert length == 3
+
+
+def test_resolve_anchor_no_match_returns_none():
+    cfg = RbsConfig()
+    assert resolve_anchor("CCCCCCCCCC", cfg) == (None, None)
+
+
+def test_resolve_anchor_handles_dna_t():
+    # DNA input: T must be matched as U
+    cfg = RbsConfig()
+    pos, length = resolve_anchor("CCATGCC", cfg)
+    assert pos == 2
+    assert length == 3

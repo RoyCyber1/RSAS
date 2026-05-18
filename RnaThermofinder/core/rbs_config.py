@@ -8,7 +8,11 @@ the historical hardcoded behavior (last "AUG", 5-13 nt upstream window).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from typing import Optional, Tuple
+
+from RnaThermofinder.utils.motif_finder import iupac_to_regex
 
 _VALID_IUPAC = set("ACGUTRYSWKMBDHVN")
 _MIN_WINDOW_WIDTH = 6  # window must hold at least one 6-mer
@@ -60,3 +64,19 @@ class RbsConfig:
                 f"Window (max_spacing - min_spacing) must be >= "
                 f"{_MIN_WINDOW_WIDTH} nt to hold a 6-mer."
             )
+
+
+def resolve_anchor(sequence: str, cfg: RbsConfig) -> Tuple[Optional[int], Optional[int]]:
+    """Find the anchor match in `sequence`.
+
+    Returns (start_index, matched_length) for the first or last match per
+    cfg.anchor_match_side, or (None, None) if the anchor pattern does not match.
+    T is normalized to U before matching.
+    """
+    norm = sequence.upper().replace("T", "U")
+    regex = iupac_to_regex(cfg.anchor_pattern)
+    matches = list(re.finditer(regex, norm))
+    if not matches:
+        return (None, None)
+    m = matches[-1] if cfg.anchor_match_side == "last" else matches[0]
+    return (m.start(), m.end() - m.start())
