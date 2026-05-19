@@ -83,6 +83,7 @@ def _generate_temp_columns(temps: List[int]) -> Dict[str, bool]:
 
     # ── Hairpin detection info ──
     cols["hairpin_detection_method"] = False
+    cols["rbs_detection_params"] = False
     cols["hairpin_sequence"] = True
     cols["hairpin_structure"] = True
 
@@ -216,6 +217,7 @@ def _generate_column_order(temps: List[int]) -> list:
     # Hairpin info
     order += [
         ("hairpin_detection_method", "Hairpin_Detection_Method"),
+        ("rbs_detection_params", "RBS_Detection_Params"),
         ("hairpin_sequence", "Hairpin_Sequence"),
         ("hairpin_structure", "Hairpin_Structure"),
         ("hairpin_au_percent", "Hairpin_AU%"),

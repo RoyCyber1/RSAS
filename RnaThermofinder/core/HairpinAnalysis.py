@@ -1400,6 +1400,11 @@ def _analyze_single_sequence(args):
                 if RBS_dot_struct is not None:
                     RBS_paired_percent = calc_rbs_paired_percent(RBS_dot_struct)
 
+    rbs_params_label = (
+        f"{rbs_cfg.anchor_pattern}/{rbs_cfg.anchor_match_side}/"
+        f"{rbs_cfg.min_spacing}-{rbs_cfg.max_spacing}"
+    )
+
     # MFE at configured temperatures (dynamic)
     MFE_results = hairpin_mfe_at_temps(hairpin_seq_trimmed, temps=temps)
     hp_mfe = {t: MFE_results[t][1] for t in temps}
@@ -1470,6 +1475,7 @@ def _analyze_single_sequence(args):
         "original_gc_in_range": orig_gc_str,
         "original_gu_in_range": orig_gu_str,
         "hairpin_detection_method": hairpin_detection_label,
+        "rbs_detection_params": rbs_params_label,
         "hairpin_sequence": hairpin_seq,
         "hairpin_structure": hairpin_struct,
         "hairpin_au_percent": AU,
@@ -1628,7 +1634,8 @@ def _build_fallback_data_keys(temps):
     if len(temps) >= 3:
         keys.append(f"rbs_seq_diff_{temps[-2]}_{t_first}")
     # Hairpin
-    keys += ["hairpin_detection_method", "hairpin_sequence", "hairpin_structure",
+    keys += ["hairpin_detection_method", "rbs_detection_params",
+             "hairpin_sequence", "hairpin_structure",
              "hairpin_au_percent", "hairpin_gc_percent", "hairpin_gu_percent"]
     for t in temps:
         keys.append(f"mfe_{t}c_hairpin")
@@ -1695,7 +1702,8 @@ def _build_fallback_headers(temps):
         hdrs.append(f"RBS_Seq_Diff_{temps[-1]}-{t_first}")
     if len(temps) >= 3:
         hdrs.append(f"RBS_Seq_Diff_{temps[-2]}-{t_first}")
-    hdrs += ["Hairpin_Detection_Method", "Hairpin_Sequence", "Hairpin_Structure",
+    hdrs += ["Hairpin_Detection_Method", "RBS_Detection_Params",
+             "Hairpin_Sequence", "Hairpin_Structure",
              "Hairpin_AU%", "Hairpin_GC%", "Hairpin_GU%"]
     for t in temps:
         hdrs.append(f"Hairpin_MFE_{t}C")
