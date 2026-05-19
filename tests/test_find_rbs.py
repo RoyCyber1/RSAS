@@ -1,7 +1,10 @@
+import math
 from RnaThermofinder.core.HairpinAnalysis import (
     find_rbs_in_hairpin,
     find_rbs_in_full_sequence,
     find_rbs_containing_hairpin,
+    find_aug_containing_hairpin,
+    find_thermometer_hairpin,
 )
 from RnaThermofinder.core.rbs_config import RbsConfig
 
@@ -76,3 +79,31 @@ def test_full_sequence_default_equals_no_config():
     struct = "." * len(S)
     assert (find_rbs_in_full_sequence(S, struct)
             == find_rbs_in_full_sequence(S, struct, RbsConfig()))
+
+
+def test_fallback_threshold_helper_length_3():
+    from RnaThermofinder.core.HairpinAnalysis import _anchor_pairing_threshold
+    assert _anchor_pairing_threshold(3) == 2   # ceil(2/3 * 3)
+
+
+def test_fallback_threshold_helper_length_5():
+    from RnaThermofinder.core.HairpinAnalysis import _anchor_pairing_threshold
+    assert _anchor_pairing_threshold(5) == 4   # ceil(2/3 * 5)
+
+
+def test_aug_fallback_accepts_config():
+    struct = "." * len(S)
+    r = find_aug_containing_hairpin(S, struct, RbsConfig())
+    assert "found" in r
+
+
+def test_thermometer_hairpin_accepts_config():
+    struct = "." * len(S)
+    r = find_thermometer_hairpin(S, struct, RbsConfig())
+    assert "found" in r
+
+
+def test_thermometer_default_equals_no_config():
+    struct = "." * len(S)
+    assert (find_thermometer_hairpin(S, struct)
+            == find_thermometer_hairpin(S, struct, RbsConfig()))

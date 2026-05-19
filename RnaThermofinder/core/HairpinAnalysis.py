@@ -1,4 +1,5 @@
 from pathlib import Path
+import math
 import os
 import sys
 import time
@@ -696,7 +697,16 @@ def find_rbs_containing_hairpin(full_seq, full_structure, cfg=None):
     return result
 
 
-def find_aug_containing_hairpin(full_seq, full_structure):
+def _anchor_pairing_threshold(anchor_len):
+    """Minimum paired positions for an anchor to count as sequestered.
+
+    Generalizes the historical '>= 2 of 3' rule: ceil(2/3 * L).
+    For L = 3 this is 2 (unchanged).
+    """
+    return math.ceil(2 / 3 * anchor_len)
+
+
+def find_aug_containing_hairpin(full_seq, full_structure, cfg=None):
     """
     Fallback: find the hairpin stem-loop that sequesters the AUG start codon.
 
@@ -717,6 +727,9 @@ def find_aug_containing_hairpin(full_seq, full_structure):
         dict: Same structure as find_rbs_containing_hairpin(), but with
               method = 'aug_hairpin' when found
     """
+    if cfg is None:
+        cfg = RbsConfig()
+
     result = {
         'found': False,
         'method': 'none',
@@ -738,9 +751,9 @@ def find_aug_containing_hairpin(full_seq, full_structure):
     if not full_seq or not full_structure or len(full_seq) != len(full_structure):
         return result
 
-    # Find last AUG
-    last_aug = full_seq.upper().rfind("AUG")
-    if last_aug == -1:
+    # Find the anchor (configurable; defaults to last "AUG")
+    last_aug, anchor_len = resolve_anchor(full_seq, cfg)
+    if last_aug is None:
         return result
 
     result['aug_pos'] = last_aug
@@ -750,15 +763,15 @@ def find_aug_containing_hairpin(full_seq, full_structure):
 
     paired_positions = []
     paired_count = 0
-    for i in range(last_aug, min(last_aug + 3, len(full_structure))):
+    for i in range(last_aug, min(last_aug + anchor_len, len(full_structure))):
         if i in pairs:
             paired_count += 1
             paired_positions.append((i, pairs[i]))
 
     result['aug_paired_count'] = paired_count
 
-    # Is AUG sequestered? (>= 2 of 3 positions paired)
-    if paired_count < 2:
+    # Is the anchor sequestered? (>= ceil(2/3 * L) positions paired)
+    if paired_count < _anchor_pairing_threshold(anchor_len):
         result['aug_sequestered'] = False
         return result
 
@@ -782,7 +795,7 @@ def find_aug_containing_hairpin(full_seq, full_structure):
         # Window-cut heuristic — cut ~80 nt around AUG
         cut_result = _cut_window_as_hairpin(
             full_seq, full_structure, target_pos=last_aug,
-            target_len=3, window_size=80
+            target_len=anchor_len, window_size=80
         )
         if cut_result is not None:
             result['found'] = True
@@ -818,7 +831,7 @@ def find_aug_containing_hairpin(full_seq, full_structure):
     return result
 
 
-def find_thermometer_hairpin(full_seq, full_structure):
+def find_thermometer_hairpin(full_seq, full_structure, cfg=None):
     """
     Main entry point: find the thermometer hairpin using the best available method.
 
@@ -839,8 +852,11 @@ def find_thermometer_hairpin(full_seq, full_structure):
             'rbs_sequestered': bool - is the RBS buried in a stem?
             'aug_sequestered': bool - is the AUG buried in a stem?
     """
+    if cfg is None:
+        cfg = RbsConfig()
+
     # Try RBS-containing hairpin first
-    rbs_result = find_rbs_containing_hairpin(full_seq, full_structure)
+    rbs_result = find_rbs_containing_hairpin(full_seq, full_structure, cfg)
 
     if rbs_result['found']:
         # Add aug_sequestered field for completeness
@@ -850,7 +866,7 @@ def find_thermometer_hairpin(full_seq, full_structure):
         return rbs_result
 
     # Fallback: try AUG-containing hairpin
-    aug_result = find_aug_containing_hairpin(full_seq, full_structure)
+    aug_result = find_aug_containing_hairpin(full_seq, full_structure, cfg)
 
     # Carry forward RBS info even when using AUG fallback
     aug_result['rbs_seq'] = rbs_result.get('rbs_seq')
