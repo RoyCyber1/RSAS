@@ -4,6 +4,28 @@ All notable changes to RSAS (RNA Structure Analysis Suite) will be documented he
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0] - 2026-05-18
+
+### Added
+- **Configurable RBS anchor and window**: the ribosome binding site search is
+  no longer hardcoded to "5-13 nt upstream of the last AUG". A new "RBS Window"
+  tab in Analysis Settings configures the anchor pattern (IUPAC-aware — e.g.
+  `DTG` matches all three bacterial start codons AUG/GUG/UUG), whether the
+  first or last anchor match is used, and the min/max upstream spacing. Settings
+  persist as a default or can be applied to a single run via an "Apply to this
+  run only" checkbox, with an Analyze-screen banner when an override is active.
+- **`RBS_Detection_Params` output column** (optional, default off): records the
+  anchor/side/window used for each run, e.g. `AUG/last/5-13`.
+
+### Changed
+- RBS detection is driven by a new `RbsConfig` object threaded through the
+  analysis pipeline; the duplicated `5`/`13` window literals in
+  `find_rbs_in_hairpin` and `find_rbs_containing_hairpin` are now a single
+  source of truth. The AUG fallback (`find_aug_containing_hairpin`) honors the
+  configured anchor, with its pairing threshold generalized to ceil(2/3 x L).
+- Default behavior is unchanged: with default settings the RBS search is
+  byte-identical to previous releases.
+
 ## [3.1.0] - 2026-03-23
 
 ### Added
