@@ -158,6 +158,9 @@ class RSASApp:
         # Recent files
         self._recent_files: list[str] = self._load_recent_files()
 
+        # Per-run RBS override (set from AnalysisSettingsDialog; cleared after run or manually)
+        self._rbs_run_override = None  # dict when a per-run RBS override is active
+
         # ── build UI ─────────────────────────────────────────────────────
         self._build_layout()
         self._bind_shortcuts()
@@ -307,9 +310,10 @@ class RSASApp:
         self._pages["analyze"] = page
 
         page.grid_columnconfigure(0, weight=1)
-        # Row 4 (log) grows; row 3 (progress) stays fixed height
+        # Row 3 (banner) and row 4 (progress) stay fixed height; row 5 (log) grows
         page.grid_rowconfigure(3, weight=0)
-        page.grid_rowconfigure(4, weight=1)
+        page.grid_rowconfigure(4, weight=0)
+        page.grid_rowconfigure(5, weight=1)
 
         # ── File input section ───────────────────────────────────────────
         input_card = ctk.CTkFrame(page, corner_radius=10)
@@ -380,9 +384,25 @@ class RSASApp:
         )
         self.export_btn.pack(side=tk.LEFT)
 
+        # ── RBS override banner ───────────────────────────────────────────
+        banner_row = ctk.CTkFrame(page, fg_color="transparent")
+        banner_row.grid(row=3, column=0, sticky="ew", padx=20, pady=0)
+
+        self._rbs_banner_var = tk.StringVar(value="")
+        self._rbs_banner = ctk.CTkLabel(
+            banner_row, textvariable=self._rbs_banner_var,
+            font=ctk.CTkFont(size=11), text_color="#b9770e")
+        self._rbs_banner.pack(anchor="w", pady=(2, 0))
+        self._rbs_clear_btn = ctk.CTkButton(
+            banner_row, text="Clear RBS override", width=140,
+            fg_color="gray40", hover_color="gray50",
+            command=self._clear_rbs_override)
+        # _rbs_clear_btn is packed only while an override is active
+        self._update_rbs_override_banner()
+
         # ── Progress ─────────────────────────────────────────────────────
         progress_frame = ctk.CTkFrame(page, fg_color="transparent")
-        progress_frame.grid(row=3, column=0, sticky="new", padx=20, pady=(0, 4))
+        progress_frame.grid(row=4, column=0, sticky="new", padx=20, pady=(0, 4))
         progress_frame.grid_columnconfigure(0, weight=1)
 
         self._progress_label_var = tk.StringVar(value="")
@@ -396,10 +416,10 @@ class RSASApp:
 
         # ── Log output ───────────────────────────────────────────────────
         log_frame = ctk.CTkFrame(page, corner_radius=10)
-        log_frame.grid(row=4, column=0, sticky="nsew", padx=20, pady=(0, 12))
+        log_frame.grid(row=5, column=0, sticky="nsew", padx=20, pady=(0, 12))
         log_frame.grid_rowconfigure(0, weight=1)
         log_frame.grid_columnconfigure(0, weight=1)
-        page.grid_rowconfigure(4, weight=1)
+        page.grid_rowconfigure(5, weight=1)
 
         ctk.CTkLabel(log_frame, text="Analysis Log",
                      font=ctk.CTkFont(size=12, weight="bold"),
@@ -716,6 +736,25 @@ class RSASApp:
             self._toast("File no longer exists", "warning")
 
     # ──────────────────────────────────────────────────────────────────────
+    # RBS override banner
+    # ──────────────────────────────────────────────────────────────────────
+    def _update_rbs_override_banner(self):
+        if self._rbs_run_override:
+            o = self._rbs_run_override
+            self._rbs_banner_var.set(
+                f"RBS window override active: {o['anchor_pattern']} / "
+                f"{o['anchor_match_side']} / {o['min_spacing']}-{o['max_spacing']}")
+            self._rbs_clear_btn.pack(anchor="w", pady=(2, 0))
+        else:
+            self._rbs_banner_var.set("")
+            self._rbs_clear_btn.pack_forget()
+
+    def _clear_rbs_override(self):
+        self._rbs_run_override = None
+        self._update_rbs_override_banner()
+        self._toast("RBS override cleared — using saved default", "info")
+
+    # ──────────────────────────────────────────────────────────────────────
     # Toast helper
     # ──────────────────────────────────────────────────────────────────────
     def _toast(self, message: str, kind: str = "info", duration: int = 3500):
@@ -736,6 +775,13 @@ class RSASApp:
                 "hairpin_detection_method", "terminal"
             )
             self.csv_settings_manager.save_settings()
+            rbs_block = result.get("rbs_detection")
+            if rbs_block is not None:
+                if result.get("rbs_run_only"):
+                    self._rbs_run_override = rbs_block
+                else:
+                    self._rbs_run_override = None  # saved as default; clear override
+            self._update_rbs_override_banner()
             temps = result.get("folding_temperatures")
             if temps:
                 self._toast(f"Analysis settings updated (temps: {temps})", "success")
@@ -941,10 +987,13 @@ class RSASApp:
                         ),
                     )
 
+            analysis_settings = dict(self.analysis_settings)
+            if self._rbs_run_override:
+                analysis_settings["_rbs_override"] = self._rbs_run_override
             self.results = HairpinAnalysis.calculate_results_final(
                 self.sequences,
                 self.output_dir,
-                self.analysis_settings,
+                analysis_settings,
                 progress_log,
                 self.csv_settings_manager,
             )
