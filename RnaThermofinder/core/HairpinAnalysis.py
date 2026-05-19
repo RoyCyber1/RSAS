@@ -701,27 +701,29 @@ def _anchor_pairing_threshold(anchor_len):
     """Minimum paired positions for an anchor to count as sequestered.
 
     Generalizes the historical '>= 2 of 3' rule: ceil(2/3 * L).
-    For L = 3 this is 2 (unchanged).
+    For L = 3 this is 2 (unchanged). For L < 3 this yields a 100%-pairing
+    requirement; sub-3-nt anchors are degenerate and not expected in practice.
     """
     return math.ceil(2 / 3 * anchor_len)
 
 
 def find_aug_containing_hairpin(full_seq, full_structure, cfg=None):
     """
-    Fallback: find the hairpin stem-loop that sequesters the AUG start codon.
+    Fallback: find the hairpin stem-loop that sequesters the anchor codon.
 
     Used when no RBS (Shine-Dalgarno) is found. Catches fourU-type thermometers
     where UUUU base-pairs directly with the AUG, blocking ribosome binding.
 
     Algorithm:
-        1. Find last AUG in the sequence
-        2. Check if AUG nucleotides are base-paired
-        3. If >= 2 of 3 are paired locally: AUG is sequestered
-           → Extract the enclosing stem-loop
+        1. Find the configured anchor (defaults to the last "AUG")
+        2. Check if the anchor nucleotides are base-paired
+        3. If >= ceil(2/3 * L) of the L anchor positions are paired
+           locally, the anchor is sequestered → extract the stem-loop
 
     Args:
         full_seq: Complete RNA sequence
         full_structure: Dot-bracket structure of full sequence at 25°C
+        cfg: RbsConfig for anchor/window. Defaults to RbsConfig() when None.
 
     Returns:
         dict: Same structure as find_rbs_containing_hairpin(), but with
