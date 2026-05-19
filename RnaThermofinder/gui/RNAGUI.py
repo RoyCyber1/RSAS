@@ -770,6 +770,8 @@ class RSASApp:
         result = dialog.show()
         if result:
             self.analysis_settings.update(result)
+            self.analysis_settings.pop("rbs_detection", None)
+            self.analysis_settings.pop("rbs_run_only", None)
             calc = self.csv_settings_manager.settings.get("calculation_settings", {})
             calc["hairpin_detection_method"] = result.get(
                 "hairpin_detection_method", "terminal"
