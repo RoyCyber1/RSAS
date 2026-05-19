@@ -107,3 +107,11 @@ def test_resolve_anchor_handles_dna_t():
     pos, length = resolve_anchor("CCATGCC", cfg)
     assert pos == 2
     assert length == 3
+
+
+def test_from_settings_raises_on_none_valued_field():
+    # A hand-edited settings JSON with `null` for a numeric field. from_settings
+    # raises (int(None) -> TypeError); the pipeline boundary in
+    # calculate_results_final catches (ValueError, TypeError) and falls back.
+    with pytest.raises((ValueError, TypeError)):
+        RbsConfig.from_settings({"min_spacing": None})

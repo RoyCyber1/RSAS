@@ -1809,7 +1809,7 @@ def calculate_results_final(
     try:
         rbs_cfg = RbsConfig.from_settings(rbs_block or {})
         rbs_cfg.validate()
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         log(f"  Warning: invalid RBS config ({e}); falling back to defaults.")
         rbs_cfg = RbsConfig()
     log(f"  RBS anchor/window: {rbs_cfg.anchor_pattern}/"

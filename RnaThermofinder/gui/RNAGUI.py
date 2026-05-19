@@ -159,7 +159,7 @@ class RSASApp:
         self._recent_files: list[str] = self._load_recent_files()
 
         # Per-run RBS override (set from AnalysisSettingsDialog; cleared after run or manually)
-        self._rbs_run_override = None  # dict when a per-run RBS override is active
+        self._rbs_run_override = None  # per-run RBS override; clears on "Clear RBS override" button or app restart
 
         # ── build UI ─────────────────────────────────────────────────────
         self._build_layout()
