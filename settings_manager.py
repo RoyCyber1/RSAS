@@ -430,6 +430,13 @@ class SettingsManager:
                 "append_position": "end"  # "start" or "end"
             },
 
+            "rbs_detection": {
+                "anchor_pattern": "AUG",
+                "anchor_match_side": "last",
+                "min_spacing": 5,
+                "max_spacing": 13,
+            },
+
             "output_preferences": {
                 "default_output_dir": "Data/Outputs",
                 "create_structures_subdir": True,
