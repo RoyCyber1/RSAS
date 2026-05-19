@@ -107,3 +107,10 @@ def test_thermometer_default_equals_no_config():
     struct = "." * len(S)
     assert (find_thermometer_hairpin(S, struct)
             == find_thermometer_hairpin(S, struct, RbsConfig()))
+
+
+def test_rbs_config_is_picklable():
+    # work items cross the multiprocessing.Pool boundary -> must pickle
+    import pickle
+    cfg = RbsConfig(anchor_pattern="DTG", min_spacing=5, max_spacing=14)
+    assert pickle.loads(pickle.dumps(cfg)) == cfg

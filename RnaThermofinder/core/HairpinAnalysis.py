@@ -1228,7 +1228,7 @@ def _analyze_single_sequence(args):
     Supports dynamic folding temperatures (1-5 configurable values).
     """
     (idx, total, og_name, og_seq, settings, calc_settings, seq_settings,
-     need_pf_full, need_pf_hairpin, temps) = args
+     need_pf_full, need_pf_hairpin, temps, rbs_cfg) = args
 
     base_temp = temps[0]
     t_first = temps[0]
@@ -1317,14 +1317,14 @@ def _analyze_single_sequence(args):
 
     if calc_settings.get("calculate_rbs_full_length", True):
         # Always compute for base temp
-        rbs_base = find_rbs_in_full_sequence(og_seq, structures.get(base_temp, ""))
+        rbs_base = find_rbs_in_full_sequence(og_seq, structures.get(base_temp, ""), rbs_cfg)
         full_rbs[base_temp] = {"seq": rbs_base["rbs_seq"], "struct": rbs_base["rbs_structure"],
                                 "paired": rbs_base["rbs_paired_percent"]}
 
         if calc_orig_temps:
             for t in temps:
                 if t != base_temp:
-                    rbs_t = find_rbs_in_full_sequence(og_seq, structures.get(t, ""))
+                    rbs_t = find_rbs_in_full_sequence(og_seq, structures.get(t, ""), rbs_cfg)
                     full_rbs[t] = {"seq": rbs_t["rbs_seq"], "struct": rbs_t["rbs_structure"],
                                     "paired": rbs_t["rbs_paired_percent"]}
 
@@ -1369,7 +1369,7 @@ def _analyze_single_sequence(args):
 
     base_structure = structures.get(base_temp, "")
     if hairpin_method == 'rbs_based':
-        thermo_result = find_thermometer_hairpin(og_seq, base_structure)
+        thermo_result = find_thermometer_hairpin(og_seq, base_structure, rbs_cfg)
         if thermo_result['found']:
             hairpin_seq = thermo_result['hairpin_seq']
             hairpin_struct = thermo_result.get('hairpin_struct')
@@ -1393,7 +1393,7 @@ def _analyze_single_sequence(args):
         hairpin_struct = term_results["hairpin_struct"]
         hairpin_seq_trimmed = trim_trailing_unpaired(hairpin_seq, hairpin_struct)
         if calc_settings.get("calculate_rbs", True):
-            RBS_results = find_rbs_in_hairpin(hairpin_seq)
+            RBS_results = find_rbs_in_hairpin(hairpin_seq, rbs_cfg)
             RBS_seq = RBS_results["rbs_seq"]
             if RBS_seq:
                 RBS_dot_struct = get_rbs_dot_struct(RBS_seq, hairpin_seq, hairpin_struct)
@@ -1789,6 +1789,23 @@ def calculate_results_final(
         calc_settings = csv_settings_manager.settings.get("calculation_settings", {})
         seq_settings = csv_settings_manager.settings.get("sequence_processing", {})
 
+    # Resolve RBS detection config: per-run override (settings dict) wins,
+    # else the persistent rbs_detection block, else defaults.
+    rbs_block = settings.get('_rbs_override')
+    if rbs_block is None and csv_settings_manager:
+        rbs_block = csv_settings_manager.settings.get('rbs_detection', {})
+    rbs_cfg = RbsConfig.from_settings(rbs_block or {})
+    # Validate once here, at the settings/analysis boundary. The GUI already
+    # validates on save; this guards a hand-edited settings file or a stale
+    # override. On invalid config, fall back to defaults rather than abort.
+    try:
+        rbs_cfg.validate()
+    except ValueError as e:
+        log(f"  Warning: invalid RBS config ({e}); falling back to defaults.")
+        rbs_cfg = RbsConfig()
+    log(f"  RBS anchor/window: {rbs_cfg.anchor_pattern}/"
+        f"{rbs_cfg.anchor_match_side}/{rbs_cfg.min_spacing}-{rbs_cfg.max_spacing}")
+
     # ── Resolve folding temperatures ──
     from settings_manager import DEFAULT_TEMPERATURES
     if csv_settings_manager:
@@ -1868,7 +1885,7 @@ def calculate_results_final(
     for idx, (og_name, og_seq) in enumerate(sequences, 1):
         work_items.append((
             idx, total, og_name, og_seq, settings, calc_settings, seq_settings,
-            need_pf_full, need_pf_hairpin, temps
+            need_pf_full, need_pf_hairpin, temps, rbs_cfg
         ))
 
     if num_cores == 1:
