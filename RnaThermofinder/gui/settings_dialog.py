@@ -63,6 +63,7 @@ class AnalysisSettingsDialog:
 
         self._create_detection_tab(tabs.add("Hairpin Detection"))
         self._create_temps_tab(tabs.add("Folding Temperatures"))
+        self._create_rbs_tab(tabs.add("RBS Window"))
 
         # Buttons
         btn_frame = ctk.CTkFrame(main, fg_color="transparent")
@@ -168,6 +169,89 @@ class AnalysisSettingsDialog:
                      font=ctk.CTkFont(size=11), text_color="#666666",
                      justify="left").pack(anchor="w", pady=(6, 0))
 
+    def _create_rbs_tab(self, tab):
+        ctk.CTkLabel(tab, text="RBS Anchor & Window:",
+                     font=ctk.CTkFont(size=13, weight="bold")
+                     ).pack(anchor="w", pady=(8, 4))
+        ctk.CTkLabel(
+            tab,
+            text="The RBS (Shine-Dalgarno) is found by scanning a window\n"
+                 "upstream of an anchor codon. Defaults: anchor AUG, 5-13 nt.",
+            font=ctk.CTkFont(size=11), text_color="gray").pack(
+            anchor="w", pady=(0, 10))
+
+        # Load persistent defaults
+        block = {}
+        if self.csv_settings_manager:
+            block = self.csv_settings_manager.settings.get("rbs_detection", {})
+
+        self.rbs_anchor_var = tk.StringVar(value=block.get("anchor_pattern", "AUG"))
+        self.rbs_side_var = tk.StringVar(value=block.get("anchor_match_side", "last"))
+        self.rbs_min_var = tk.StringVar(value=str(block.get("min_spacing", 5)))
+        self.rbs_max_var = tk.StringVar(value=str(block.get("max_spacing", 13)))
+        self.rbs_run_only_var = tk.BooleanVar(value=False)
+
+        arow = ctk.CTkFrame(tab, fg_color="transparent")
+        arow.pack(anchor="w", pady=3)
+        ctk.CTkLabel(arow, text="Anchor (IUPAC):", width=130,
+                     font=ctk.CTkFont(size=12)).pack(side=tk.LEFT)
+        ctk.CTkEntry(arow, textvariable=self.rbs_anchor_var, width=120).pack(side=tk.LEFT)
+        ctk.CTkLabel(arow, text="e.g. AUG, GUG, DTG (= all start codons)",
+                     font=ctk.CTkFont(size=10), text_color="gray").pack(
+            side=tk.LEFT, padx=(8, 0))
+
+        srow = ctk.CTkFrame(tab, fg_color="transparent")
+        srow.pack(anchor="w", pady=3)
+        ctk.CTkLabel(srow, text="Match side:", width=130,
+                     font=ctk.CTkFont(size=12)).pack(side=tk.LEFT)
+        ctk.CTkRadioButton(srow, text="Last (3'-most)", variable=self.rbs_side_var,
+                           value="last").pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkRadioButton(srow, text="First (5'-most)", variable=self.rbs_side_var,
+                           value="first").pack(side=tk.LEFT)
+
+        mrow = ctk.CTkFrame(tab, fg_color="transparent")
+        mrow.pack(anchor="w", pady=3)
+        ctk.CTkLabel(mrow, text="Min spacing (nt):", width=130,
+                     font=ctk.CTkFont(size=12)).pack(side=tk.LEFT)
+        ctk.CTkEntry(mrow, textvariable=self.rbs_min_var, width=70).pack(side=tk.LEFT)
+
+        xrow = ctk.CTkFrame(tab, fg_color="transparent")
+        xrow.pack(anchor="w", pady=3)
+        ctk.CTkLabel(xrow, text="Max spacing (nt):", width=130,
+                     font=ctk.CTkFont(size=12)).pack(side=tk.LEFT)
+        ctk.CTkEntry(xrow, textvariable=self.rbs_max_var, width=70).pack(side=tk.LEFT)
+
+        ctk.CTkCheckBox(tab, text="Apply to this run only (don't save as default)",
+                        variable=self.rbs_run_only_var).pack(anchor="w", pady=(12, 4))
+
+        self._rbs_status_label = ctk.CTkLabel(
+            tab, text="", font=ctk.CTkFont(size=11))
+        self._rbs_status_label.pack(anchor="w", pady=(4, 0))
+
+    def _get_rbs_config_from_ui(self):
+        """Validate and return (rbs_dict, run_only_bool), or (None, None)."""
+        from RnaThermofinder.core.rbs_config import RbsConfig
+        try:
+            min_s = int(self.rbs_min_var.get().strip())
+            max_s = int(self.rbs_max_var.get().strip())
+        except ValueError:
+            self._rbs_status_label.configure(
+                text="Min/Max spacing must be whole numbers.",
+                text_color="#e74c3c")
+            return None, None
+        block = {
+            "anchor_pattern": self.rbs_anchor_var.get().strip().upper(),
+            "anchor_match_side": self.rbs_side_var.get(),
+            "min_spacing": min_s,
+            "max_spacing": max_s,
+        }
+        try:
+            RbsConfig.from_settings(block).validate()
+        except ValueError as e:
+            self._rbs_status_label.configure(text=str(e), text_color="#e74c3c")
+            return None, None
+        return block, self.rbs_run_only_var.get()
+
     def _add_temp_row(self, value=37):
         row = ctk.CTkFrame(self._temp_rows_frame, fg_color="transparent")
         row.pack(fill=tk.X, pady=2)
@@ -259,9 +343,19 @@ class AnalysisSettingsDialog:
             self.csv_settings_manager.set_temperatures(temps)
             self.csv_settings_manager.save_settings()
 
+        rbs_block, rbs_run_only = self._get_rbs_config_from_ui()
+        if rbs_block is None:
+            return  # validation failed; status label already set
+
+        if self.csv_settings_manager and not rbs_run_only:
+            self.csv_settings_manager.settings["rbs_detection"] = rbs_block
+            self.csv_settings_manager.save_settings()
+
         self.result = {
             'hairpin_detection_method': self.hairpin_method_var.get(),
             'folding_temperatures': temps,
+            'rbs_detection': rbs_block,
+            'rbs_run_only': rbs_run_only,
         }
         self.dialog.destroy()
 
@@ -274,6 +368,13 @@ class AnalysisSettingsDialog:
         self._temp_entries.clear()
         for t in DEFAULT_TEMPERATURES:
             self._add_temp_row(t)
+
+        # Reset RBS settings
+        self.rbs_anchor_var.set("AUG")
+        self.rbs_side_var.set("last")
+        self.rbs_min_var.set("5")
+        self.rbs_max_var.set("13")
+        self.rbs_run_only_var.set(False)
 
     def show(self):
         self.dialog.wait_window()
