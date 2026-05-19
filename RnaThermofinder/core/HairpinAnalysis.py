@@ -1794,11 +1794,12 @@ def calculate_results_final(
     rbs_block = settings.get('_rbs_override')
     if rbs_block is None and csv_settings_manager:
         rbs_block = csv_settings_manager.settings.get('rbs_detection', {})
-    rbs_cfg = RbsConfig.from_settings(rbs_block or {})
-    # Validate once here, at the settings/analysis boundary. The GUI already
-    # validates on save; this guards a hand-edited settings file or a stale
-    # override. On invalid config, fall back to defaults rather than abort.
+    # Build + validate the RBS config once here, at the settings/analysis
+    # boundary. The GUI already validates on save; this guards a hand-edited
+    # settings file or a stale override. On invalid config (bad value or
+    # bad combination), fall back to defaults rather than abort the run.
     try:
+        rbs_cfg = RbsConfig.from_settings(rbs_block or {})
         rbs_cfg.validate()
     except ValueError as e:
         log(f"  Warning: invalid RBS config ({e}); falling back to defaults.")
