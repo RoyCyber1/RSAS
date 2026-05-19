@@ -16,7 +16,7 @@ ACCENT = "#2980b9"
 
 
 class AnalysisSettingsDialog:
-    """Hairpin detection method + folding temperatures."""
+    """Hairpin detection method, folding temperatures, and RBS window."""
 
     MAX_TEMPS = 5
 
@@ -250,6 +250,7 @@ class AnalysisSettingsDialog:
         except ValueError as e:
             self._rbs_status_label.configure(text=str(e), text_color="#e74c3c")
             return None, None
+        self._rbs_status_label.configure(text="", text_color="gray")
         return block, self.rbs_run_only_var.get()
 
     def _add_temp_row(self, value=37):
@@ -338,17 +339,14 @@ class AnalysisSettingsDialog:
                     text_color="#e74c3c")
             return
 
-        if self.csv_settings_manager:
-            # Save folding temperatures
-            self.csv_settings_manager.set_temperatures(temps)
-            self.csv_settings_manager.save_settings()
-
         rbs_block, rbs_run_only = self._get_rbs_config_from_ui()
         if rbs_block is None:
-            return  # validation failed; status label already set
+            return  # RBS validation failed; status label already set
 
-        if self.csv_settings_manager and not rbs_run_only:
-            self.csv_settings_manager.settings["rbs_detection"] = rbs_block
+        if self.csv_settings_manager:
+            self.csv_settings_manager.set_temperatures(temps)
+            if not rbs_run_only:
+                self.csv_settings_manager.settings["rbs_detection"] = rbs_block
             self.csv_settings_manager.save_settings()
 
         self.result = {
