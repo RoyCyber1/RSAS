@@ -32,7 +32,7 @@ ACCENT_HOVER = "#3498db"
 MUTED = "#8b95a5"
 SUCCESS = "#27ae60"
 
-MAX_ELEMENTS = 12
+MAX_ELEMENTS = 50  # generous UI sanity cap; descriptor assembly is fully dynamic
 
 # Element type labels shown in the dropdown
 TYPE_HELIX = "Helix (h)"
