@@ -35,9 +35,14 @@ Data/Inputs/*.csv
 Data/Inputs/*.tsv
 Data/Inputs/*.txt
 
-# User-generated output
+# User-generated output (analysis plots, exported structures).
+# Keep the app icon and any images committed under docs/ or Examples/.
 *.svg
 *.png
+!icon.png
+!docs/**/*.png
+!docs/**/*.svg
+!Examples/**/*.png
 
 # Built applications (too large for git)
 *.zip
