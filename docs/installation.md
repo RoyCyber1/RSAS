@@ -1,6 +1,6 @@
 # Installation Guide
 
-Step-by-step instructions for getting RSAS v3.0 running on your machine. There are two ways to use RSAS: download the pre-built app (no Python needed), or run from source.
+Step-by-step instructions for getting RSAS v3.2 running on your machine. There are two ways to use RSAS: download the pre-built app (no Python needed), or run from source.
 
 ---
 
@@ -24,14 +24,14 @@ The pre-built app bundles everything (Python, ViennaRNA bindings, dependencies),
 | Requirement | Details |
 |---|---|
 | OS | macOS, Linux, or Windows |
-| Python | 3.8 or higher (3.10+ recommended) |
+| Python | 3.9 or higher (3.10+ recommended) |
 | RAM | 4 GB minimum, 8+ GB for large batches or partition function |
 | CPU | 2+ cores recommended (multiprocessing is optional) |
 | ViennaRNA | Must be installed via system package manager (see below) |
 
 ### Step 1: Install Python
 
-Make sure Python 3.8+ is available. Check with:
+Make sure Python 3.9+ is available. Check with:
 
 ```bash
 python3 --version
@@ -130,7 +130,7 @@ This installs:
 python main.py
 ```
 
-The RSAS window should appear. Try loading one of the test files in `Data/` (e.g. `Data/Test_Thermo_RV.fasta`), click Analyze, and check that results appear in the log and in `Data/Outputs/`.
+The RSAS window should appear. Try loading one of the bundled sample files in `Examples/` (e.g. `Examples/Test_Thermo_RV.fasta`), click Analyze, and check that results appear in the log and in `Data/Outputs/`.
 
 ### Step 7: (Optional) Editable install
 
@@ -176,7 +176,7 @@ python build_app.py
 Or use the spec file directly:
 
 ```bash
-pyinstaller RNAThermoFinder.spec
+pyinstaller RSAS.spec
 ```
 
 Output location:
@@ -259,7 +259,7 @@ Your settings (in `csv_output_settings.json`) are preserved across updates.
 
 ## Summary
 
-1. Install **Python 3.8+**
+1. Install **Python 3.9+**
 2. Install **ViennaRNA** via system package manager
 3. Clone the repo and `pip install -r requirements.txt`
 4. Run `python main.py`

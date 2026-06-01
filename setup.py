@@ -17,7 +17,7 @@ except FileNotFoundError:
 
 setup(
     name="RSAS",
-    version="3.0.0",
+    version="3.2.0",
     author="Roy Vaknin",
     author_email="roycyber13@gmail.com",
     description="RSAS: RNA Structure Analysis Suite for identifying and analyzing RNA thermometers and regulatory structures",

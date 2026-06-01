@@ -13,6 +13,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Earlier changelog entries that reference `switch_finder.py` are retained as
   historical record.
 
+### Changed
+- **Documentation overhaul.** README, installation, and usage guides audited and
+  corrected against the current app: documented the RNArobo Search and Pseudoknot
+  Finder tools, the configurable RBS Window, the seven-page sidebar, and the
+  updated project tree; fixed the PyInstaller spec name (`RSAS.spec`) and the
+  bundled sample-file path (`Examples/Test_Thermo_RV.fasta`).
+- Package version aligned to 3.2.0 (`setup.py`); docs now reference v3.2.
+- Minimum Python documented as 3.9 to match `setup.py`.
+
 ## [3.2.0] - 2026-05-18
 
 ### Added

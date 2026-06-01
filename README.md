@@ -1,8 +1,27 @@
-# RSAS: RNA Structure Analysis Suite v3.0
+<div align="center">
 
-A desktop application for identifying and characterizing RNA thermometers, riboswitches, and other regulatory RNA structures in bacterial sequences. Built for researchers who need to screen large pools of candidate sequences and quantify structural features at multiple folding temperatures.
+<img src="icon.png" alt="RSAS logo" width="120" />
 
-Previously known as RNA Thermometer Finder.
+# RSAS: RNA Structure Analysis Suite
+
+**v3.2** &middot; A desktop app for finding and characterizing RNA thermometers, riboswitches, and other regulatory RNA structures in bacterial sequences.
+
+*Fold a pool of candidate sequences at multiple temperatures, detect the regulatory hairpin and RBS, and score every sequence — no scripting required.*
+
+*Previously known as RNA Thermometer Finder.*
+
+</div>
+
+---
+
+## 60-second tour
+
+1. **Download** the pre-built app (or `pip install -r requirements.txt && python main.py`).
+2. **Drag a FASTA file** onto the window.
+3. **Click Analyze.** RSAS folds each sequence at 25/37/42 °C (configurable), finds the terminal/RBS hairpin, measures how sequestered the ribosome binding site is at each temperature, and scores each candidate.
+4. **Click Export** for an Excel/CSV report — thermometer candidates sorted to the top.
+
+No file? Use the bundled `Examples/Test_Thermo_RV.fasta` to see it work end-to-end.
 
 ---
 
@@ -28,7 +47,7 @@ Results are exported as CSV and Excel workbooks with up to three tabs (Full Sequ
 - **Customizable folding temperatures** — configure 1 to 5 temperatures (not limited to 25/37/42). All columns, keys, and Excel headers update dynamically
 - **MFE folding** — minimum free energy structure at each temperature via ViennaRNA
 - **Partition function** (optional) — ensemble energy, mean paired probability, and per-nucleotide unpaired probabilities for accessibility analysis
-- **RBS sequestering** — Shine-Dalgarno detection, paired percentage at each temperature, and temperature-difference columns to spot thermometer-like responses
+- **RBS sequestering** — Shine-Dalgarno detection, paired percentage at each temperature, and temperature-difference columns to spot thermometer-like responses. The anchor and upstream window are **configurable** (RBS Window tab): IUPAC-aware anchor (e.g. `DTG` matches all three bacterial start codons AUG/GUG/UUG), first-or-last match, and adjustable spacing — defaults reproduce the classic "5–13 nt upstream of the last AUG" behavior
 - **Composition analysis** — AU%, GC%, GU% for full-length sequence and extracted hairpin, with configurable "in range" filters
 
 ### Motif / Sequence Finder
@@ -53,6 +72,18 @@ Results are exported as CSV and Excel workbooks with up to three tabs (Full Sequ
 - Fetch sequences directly from NCBI by accession
 - Configurable region length, start codon inclusion, and direction
 
+### Structural motif search (RNArobo)
+- Search sequences for **structural** motifs (not just linear patterns) using the bundled [RNArobo](https://github.com/rampasek/RNArobo) 2.1.0 engine
+- Build descriptors from helices (`h`, paired stems with optional G-U wobble), single-stranded regions (`s`), and relational elements (`r`), each with mismatch/mispair/insertion tolerances
+- Presets and an interactive descriptor builder; results report which sequences contain the motif and where
+- Bundled binary for macOS; other platforms need the `rnarobo` binary on PATH
+
+### Pseudoknot prediction (Knotty)
+- Predict secondary structures **including pseudoknots** with the bundled [Knotty](https://github.com/HosnaJabbari/Knotty) engine (DP09 energy model)
+- Reports which sequences contain pseudoknots, the predicted structure, and minimum free energy
+- Reference: Jabbari et al. (2018), *Bioinformatics* 34(22):3849-3856
+- Bundled binary for macOS; other platforms need the `knotty` binary on PATH
+
 ### Output and export
 - **CSV** with only the columns you've enabled (configurable via Output Columns dialog)
 - **Excel** workbook with up to 3 tabs: Full Sequence, Hairpin Analysis, and Motif Matches
@@ -62,7 +93,7 @@ Results are exported as CSV and Excel workbooks with up to three tabs (Full Sequ
 
 ### GUI
 - Modern CustomTkinter interface with dark and light mode support
-- Sidebar navigation: Analyze, Results, Settings, Sequence Extractor, Synthetic Pool
+- Sidebar navigation: Analyze, Results, Settings, Sequence Extractor, Synthetic Pool, RNArobo Search, Pseudoknot Finder
 - Drag-and-drop file input
 - Keyboard shortcuts (Cmd/Ctrl+O open, Cmd/Ctrl+R run, Cmd/Ctrl+E export)
 - Multiprocessing with configurable CPU core count
@@ -134,22 +165,27 @@ Results include (depending on what's enabled):
 ```
 RNAThermoFinder/
 ├── main.py                    # entry point
-├── settings_manager.py        # JSON-based config persistence
+├── settings_manager.py        # JSON-based config persistence + output columns
 ├── setup.py                   # package setup
 ├── build_app.py               # PyInstaller build script
 ├── requirements.txt
-├── RNAThermoFinder.spec       # PyInstaller spec
+├── RSAS.spec                  # PyInstaller spec
+├── bin/                       # bundled engines (rnarobo, knotty) per platform
+├── Examples/                  # sample FASTA inputs
 ├── RnaThermofinder/
 │   ├── core/
 │   │   ├── FastaParse.py      # FASTA/CSV/TSV input parsing
-│   │   └── HairpinAnalysis.py # main analysis pipeline
+│   │   ├── HairpinAnalysis.py # main analysis pipeline
+│   │   └── rbs_config.py      # configurable RBS anchor/window
 │   ├── gui/
 │   │   ├── RNAGUI.py          # main application window
-│   │   ├── settings_dialog.py # analysis + performance settings
+│   │   ├── settings_dialog.py        # analysis + performance settings
 │   │   ├── settings_dialog_csv.py    # output column config
 │   │   ├── motif_finder_dialog.py    # motif search config
 │   │   ├── quality_score_builder.py  # quality score criteria
 │   │   ├── synthetic_pool_dialog.py  # pool generator UI
+│   │   ├── rnarobo_dialog.py         # structural motif search UI
+│   │   ├── knotty_dialog.py          # pseudoknot finder UI
 │   │   ├── upstream_extractor_dialog.py
 │   │   └── sequence_settings_dialog.py
 │   └── utils/
@@ -157,6 +193,8 @@ RNAThermoFinder/
 │       ├── motif_finder.py           # IUPAC motif search + sequestering
 │       ├── quality_scoring.py        # scoring logic
 │       ├── synthetic_pool_generator.py
+│       ├── rnarobo_wrapper.py        # RNArobo subprocess + parser
+│       ├── knotty_wrapper.py         # Knotty subprocess + parser
 │       └── upstream_extractor.py
 ├── Data/
 │   ├── Inputs/                # place input files here
@@ -182,7 +220,7 @@ This produces `dist/RSAS.app` (macOS), `dist/RSAS.exe` (Windows), or `dist/RSAS`
 You can also use the spec file directly:
 
 ```bash
-pyinstaller RNAThermoFinder.spec
+pyinstaller RSAS.spec
 ```
 
 ---
@@ -199,7 +237,7 @@ pyinstaller RNAThermoFinder.spec
 If you use RSAS in published research:
 
 ```
-Vaknin, R. (2025). RSAS: RNA Structure Analysis Suite v3.0.
+Vaknin, R. (2025). RSAS: RNA Structure Analysis Suite v3.2.
 GitHub: https://github.com/RoyCyber1/RNAThermoFinder
 ```
 
@@ -224,5 +262,7 @@ Roy Vaknin
 ## Acknowledgments
 
 - [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) for RNA folding algorithms
+- [RNArobo](https://github.com/rampasek/RNArobo) for structural motif search
+- [Knotty](https://github.com/HosnaJabbari/Knotty) (Jabbari et al. 2018) for pseudoknot prediction
 - Dr. Abdelsayed for experimental validation data
 - SCREAM team for testing and feedback

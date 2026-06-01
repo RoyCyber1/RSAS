@@ -1,6 +1,6 @@
 # Usage Guide
 
-Everything you need to know about using RSAS v3.0: the GUI, every settings dialog, output formats, the scripting API, and tips for getting the most out of the tool.
+Everything you need to know about using RSAS v3.2: the GUI, every settings dialog, output formats, the scripting API, and tips for getting the most out of the tool.
 
 ---
 
@@ -10,7 +10,7 @@ Everything you need to know about using RSAS v3.0: the GUI, every settings dialo
 python main.py
 ```
 
-The main window has a sidebar on the left with five pages:
+The main window has a sidebar on the left with seven pages:
 
 | Page | What it's for |
 |---|---|
@@ -19,6 +19,8 @@ The main window has a sidebar on the left with five pages:
 | **Settings** | Analysis Settings, Performance, Output Columns, Motif Finder, Quality Score Builder, Sequence Options |
 | **Sequence Extractor** | Extract upstream/downstream sequences from local files or NCBI |
 | **Synthetic Pool** | Generate random RNA sequence pools with fixed motif inserts |
+| **RNArobo Search** | Search sequences for structural motifs (helices/loops) via the bundled RNArobo engine |
+| **Pseudoknot Finder** | Predict pseudoknotted structures via the bundled Knotty engine (DP09 model) |
 
 ---
 
@@ -74,7 +76,7 @@ The Settings page has several cards, each opening its own dialog.
 
 ### Analysis Settings
 
-Opens a dialog with two tabs:
+Opens a dialog with three tabs:
 
 **Hairpin Detection tab:**
 - **Terminal** (default) — finds the rightmost stem-loop structure in the sequence. This works well when the regulatory hairpin is at the 3' end of the leader
@@ -86,6 +88,14 @@ Opens a dialog with two tabs:
 - The lowest temperature is always used as the "base" for hairpin detection and difference calculations
 - All output columns dynamically update when you change temperatures — column headers, CSV keys, and Excel tab headers all reflect whatever temperatures you configure
 - Add or remove temperature rows with the + and - buttons
+
+**RBS Window tab:**
+- Controls how the ribosome binding site is located, previously hardcoded
+- **Anchor pattern** — IUPAC-aware (e.g. `AUG`, or `DTG` to match all three bacterial start codons AUG/GUG/UUG)
+- **Anchor side** — use the first or the last match in the sequence
+- **Spacing window** — min/max nucleotides upstream of the anchor to scan for the G-rich RBS (default 5–13)
+- **Apply to this run only** — use the settings for a single run without changing the saved default; an Analyze-screen banner shows when an override is active
+- With default settings, RBS detection is byte-identical to previous releases
 
 ### Performance
 
@@ -213,6 +223,44 @@ All three are independent and disabled by default. When enabled, sequences that 
 - Optionally set a random seed for reproducibility
 - Choose an output file path (default: FASTA format)
 - Click **Generate** and watch progress in the log area
+
+---
+
+## RNArobo Search page
+
+Search your loaded sequences for **structural** motifs — patterns defined by base-paired helices and single-stranded regions, not just a linear nucleotide string. This page drives the bundled [RNArobo](https://github.com/rampasek/RNArobo) 2.1.0 engine.
+
+### Building a descriptor
+
+A descriptor is a list of elements, each with tolerances:
+
+- **Helix (`h`)** — a paired stem. Allows G-U wobble by default; configurable mismatches and mispairs
+- **Single-stranded (`s`)** — an unpaired region with an optional nucleotide sequence constraint
+- **Relational (`r`)** — like a helix but with a custom pairing transformation string
+
+Each element can also allow insertions with nucleotide constraints. Use the interactive builder to add elements, or start from a preset. The order of elements defines the 5'→3' layout of the motif.
+
+### Running
+
+- Load sequences on the Analyze page first (they carry over), or point the dialog at a FASTA file
+- Build or pick a descriptor, then run
+- Results list which sequences contain the motif and the matched positions
+
+> The `rnarobo` binary ships for macOS. On Windows/Linux, place a built `rnarobo` binary on your PATH (or in `bin/<platform>/`).
+
+---
+
+## Pseudoknot Finder page
+
+Predict secondary structures that include **pseudoknots** — crossing base pairs that standard MFE folding (ViennaRNA) does not model. This page drives the bundled [Knotty](https://github.com/HosnaJabbari/Knotty) engine, which uses the DP09 energy model.
+
+- Load sequences (carried over from Analyze, or from a FASTA file)
+- Run to get, per sequence: whether a pseudoknot is present, the predicted dot-bracket structure (with pseudoknot brackets), and the minimum free energy
+- Export results to CSV
+
+Reference: Jabbari et al. (2018), *Bioinformatics* 34(22):3849-3856.
+
+> The `knotty` binary ships for macOS. On Windows/Linux, place a built `knotty` binary on your PATH (or in `bin/<platform>/`).
 
 ---
 
