@@ -4,6 +4,15 @@ All notable changes to RSAS (RNA Structure Analysis Suite) will be documented he
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Removed
+- **Switch Finder** feature removed from the public release. The temperature-
+  dependent structural-switching tool (nav item, page, dialog, and the
+  `switch_finder` / `switch_finder_dialog` modules) is no longer part of RSAS.
+  Earlier changelog entries that reference `switch_finder.py` are retained as
+  historical record.
+
 ## [3.2.0] - 2026-05-18
 
 ### Added

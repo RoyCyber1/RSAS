@@ -29,7 +29,6 @@ from .quality_score_builder import QualityScoreBuilderDialog
 from .motif_finder_dialog import MotifFinderDialog
 from .synthetic_pool_dialog import SyntheticPoolDialog
 from .rnarobo_dialog import RNAroboDialog
-from .switch_finder_dialog import SwitchFinderDialog
 from .knotty_dialog import KnottyDialog
 
 
@@ -231,7 +230,6 @@ class RSASApp:
             ("upstream", "Sequence Extractor", "\u21c5"),
             ("pool",     "Synthetic Pool",     "\u2261"),
             ("rnarobo",  "RNArobo Search",     "\u2316"),
-            ("switch",   "Switch Finder",      "\u21c6"),
             ("knotty",  "Pseudoknot Finder",  "\u2297"),
         ]
         ctk.CTkLabel(self._sidebar, text="NAVIGATION",
@@ -277,7 +275,6 @@ class RSASApp:
         self._build_upstream_page()
         self._build_pool_page()
         self._build_rnarobo_page()
-        self._build_switch_page()
         self._build_knotty_page()
 
         # Show default page
@@ -595,25 +592,6 @@ class RSASApp:
             command=self._open_rnarobo_dialog,
         ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
 
-    def _build_switch_page(self):
-        page = ctk.CTkFrame(self._content, fg_color="transparent")
-        self._pages["switch"] = page
-        page.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(page, text="Switch Finder",
-                     font=ctk.CTkFont(size=18, weight="bold"),
-                     ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 4))
-        ctk.CTkLabel(page, text="Detect temperature-dependent structural switching around a motif (thermometer / riboswitch behaviour)",
-                     font=ctk.CTkFont(size=12), text_color=MUTED,
-                     ).grid(row=1, column=0, sticky="w", padx=24, pady=(0, 12))
-
-        ctk.CTkButton(
-            page, text="Open Switch Finder", width=220, height=42,
-            fg_color=ACCENT, hover_color=ACCENT_HOVER,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=self._open_switch_finder,
-        ).grid(row=2, column=0, sticky="w", padx=24, pady=8)
-
     def _build_knotty_page(self):
         page = ctk.CTkFrame(self._content, fg_color="transparent")
         self._pages["knotty"] = page
@@ -837,13 +815,6 @@ class RSASApp:
 
     def _open_rnarobo_dialog(self):
         dialog = RNAroboDialog(self.root)
-        dialog.show()
-
-    def _open_switch_finder(self):
-        # Pass loaded sequences so the user doesn't have to re-load a file
-        seqs = [{"name": s[0], "sequence": s[1]} for s in self.sequences] if self.sequences else []
-        dialog = SwitchFinderDialog(self.root, sequences=seqs,
-                                    settings_manager=self.csv_settings_manager)
         dialog.show()
 
     def _open_knotty_dialog(self):
