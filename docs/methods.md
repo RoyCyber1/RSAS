@@ -27,11 +27,13 @@ Everything after step 1 is interpretation. Step 1 is where the physics lives.
 RSAS folds with ViennaRNA through its Python bindings (the `RNA` module). Every fold uses the same model settings, so results are comparable across sequences and temperatures:
 
 - **Dangling ends**: `dangles = 2`. This is ViennaRNA's default and the most common choice in the literature; it lets dangling, unpaired bases at the ends of helices contribute stabilizing energy.
-- **Lonely pairs**: `noLP = 1`. Isolated single base pairs (a helix of length one) are disallowed. This keeps predicted structures closer to what forms in reality and is standard practice.
+- **Lonely pairs**: `noLP = 1`. Isolated single base pairs (a helix of length one) are disallowed. Note this departs from ViennaRNA's default (`noLP = 0`); RSAS turns it on because suppressing lonely pairs keeps predicted structures closer to what forms in reality.
 - **GU wobble**: `noGU = 0`. G-U wobble pairs are allowed, as they should be for RNA.
 - **Temperature**: set per fold to whatever you configured. ViennaRNA rescales its energy parameters to that temperature using the same nearest-neighbor model it uses at 37 °C.
 
 The energy model is ViennaRNA's, which means the Turner nearest-neighbor parameters. RSAS does not ship its own parameters or modify ViennaRNA's.
+
+**Versions, for reproducibility.** Folding numbers depend on the ViennaRNA version, since its parameters and defaults have shifted across releases. The results reported here and in the worked example were produced with **ViennaRNA 2.7.2**. The bundled structural-search engines are **RNArobo 2.1.0** and **Knotty** (DP09 model). If you reproduce results, pin these versions; a different ViennaRNA release can give slightly different energies.
 
 ### MFE folding
 

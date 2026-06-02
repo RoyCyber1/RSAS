@@ -1,3 +1,5 @@
+# When the accompanying paper is published, add a `preferred-citation:` block
+# pointing to it (with its DOI) so this becomes the canonical citation.
 cff-version: 1.2.0
 message: "If you use RSAS in your research, please cite it as below."
 title: "RSAS: RNA Structure Analysis Suite"
@@ -13,7 +15,7 @@ authors:
     given-names: Roy
     email: roycyber13@gmail.com
 version: "3.2.0"
-date-released: "2025-02-23"
+date-released: "2025-11-08"
 license: MIT
 repository-code: "https://github.com/RoyCyber1/RNAThermoFinder"
 url: "https://github.com/RoyCyber1/RNAThermoFinder"

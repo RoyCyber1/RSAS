@@ -18,7 +18,7 @@ You give it a pool of candidate sequences. It folds each one at the temperatures
 
 ## The 60-second version
 
-1. Grab the pre-built app, or run from source with `pip install -r requirements.txt && python main.py`.
+1. Install ViennaRNA (`brew install viennarna`), then run from source: `pip install -r requirements.txt && python main.py`. Or grab a pre-built app when a release has one attached.
 2. Drag a FASTA file onto the window.
 3. Click **Analyze**. RSAS folds every sequence at 25, 37, and 42 °C (change these to whatever your biology needs), locates the hairpin and the RBS, and works out how paired the RBS is at each temperature.
 4. Click **Export**. You get an Excel workbook and a CSV, with the best thermometer candidates sorted to the top.
@@ -94,13 +94,9 @@ A CustomTkinter desktop UI with a System / Light / Dark switch in the header (it
 
 ## Quick start
 
-### Pre-built app (no Python needed)
-
-1. Download the latest release from [Releases](https://github.com/RoyCyber1/RNAThermoFinder/releases).
-2. Unzip and double-click `RSAS.app` (macOS) or `RSAS.exe` (Windows).
-3. macOS will probably complain the first time, since the app isn't notarized. Right-click it, choose **Open**, then click **Open** again in the dialog. You only have to do this once.
-
 ### From source
+
+ViennaRNA is the one dependency pip can't install, and the app won't start without it, so install it first.
 
 ```bash
 # 1. Install ViennaRNA (it does the folding; pip can't install it)
@@ -115,6 +111,10 @@ pip install -r requirements.txt
 # 3. Run it
 python main.py
 ```
+
+### Pre-built app
+
+When a release has a packaged build attached, you can download `RSAS.app` (macOS) or `RSAS.exe` (Windows) from [Releases](https://github.com/RoyCyber1/RNAThermoFinder/releases) and run it with no Python or ViennaRNA setup. On macOS the app isn't notarized, so the first time, right-click it, choose **Open**, then **Open** again. If the latest release is source-only, use the from-source steps above.
 
 If ViennaRNA gives you trouble (it's the usual culprit), the [installation guide](docs/installation.md) has a whole troubleshooting section.
 
@@ -238,7 +238,7 @@ See [CHANGELOG.md](RnaThermofinder/CHANGELOG.md) for the full version history.
 
 ## License
 
-MIT. See [LICENSE.md](LICENSE.md).
+RSAS is MIT-licensed (see [LICENSE.md](LICENSE.md)) and is non-commercial academic software. It bundles third-party academic tools (RNArobo, Knotty) that carry their own terms; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Author
 
