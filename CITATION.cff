@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use RSAS in your research, please cite it as below."
+title: "RSAS: RNA Structure Analysis Suite"
+abstract: >-
+  A desktop application for finding and characterizing RNA thermometers,
+  riboswitches, and other regulatory structures in bacterial sequences. RSAS
+  folds candidate sequences at multiple temperatures with ViennaRNA, detects the
+  regulatory hairpin and ribosome binding site, measures how sequestered the RBS
+  is as temperature changes, and scores each candidate.
+type: software
+authors:
+  - family-names: Vaknin
+    given-names: Roy
+    email: roycyber13@gmail.com
+version: "3.2.0"
+date-released: "2026-05-18"
+license: MIT
+repository-code: "https://github.com/RoyCyber1/RNAThermoFinder"
+url: "https://github.com/RoyCyber1/RNAThermoFinder"
+keywords:
+  - RNA thermometer
+  - riboswitch
+  - RNA secondary structure
+  - ribosome binding site
+  - ViennaRNA
+  - bioinformatics

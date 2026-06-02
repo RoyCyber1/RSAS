@@ -213,6 +213,8 @@ The build takes a few minutes and bundles Python, the dependencies, and the Vien
 
 - **[Installation guide](docs/installation.md)** covers system requirements, getting ViennaRNA working, the Python dependencies, verification, and the troubleshooting you'll probably need.
 - **[Usage guide](docs/usage.md)** walks through the GUI, every settings dialog, the output formats, the scripting API, and a pile of practical tips.
+- **[How it works](docs/methods.md)** is the methods document: the folding model, the RBS and hairpin algorithms, how the quality score is computed, what the thermometer signal is, and where the limits are.
+- **[Output column reference](docs/output-columns.md)** defines every CSV/Excel column with its meaning and units.
 
 ---
 
@@ -224,6 +226,8 @@ If RSAS shows up in published work:
 Vaknin, R. (2025). RSAS: RNA Structure Analysis Suite v3.2.
 GitHub: https://github.com/RoyCyber1/RNAThermoFinder
 ```
+
+The repository also ships a [`CITATION.cff`](CITATION.cff), so GitHub's "Cite this repository" button generates APA and BibTeX entries for you.
 
 ---
 
