@@ -128,7 +128,7 @@ If you only export one set of numbers, export those diffs.
 RSAS bundles two external engines for jobs ViennaRNA's standard folding can't do. They're separate from the main pipeline; they run on their own pages and produce their own output.
 
 - **RNArobo** (Rampášek et al.) searches for *structural* motifs described by helices and loops rather than a flat sequence pattern. RSAS builds the descriptor and parses the results; the search itself is RNArobo's.
-- **Knotty** (Jabbari et al. 2018, *Bioinformatics* 34(22):3849-3856) predicts secondary structures that include pseudoknots, the crossing base pairs that standard MFE folding can't represent, using the DP09 energy model. RSAS calls it per sequence and reports whether a pseudoknot is present, the structure, and the free energy.
+- **Knotty** (Jabbari et al. 2018, *Bioinformatics* 34(22):3849-3856) predicts secondary structures that include pseudoknots, the crossing base pairs that standard MFE folding can't represent, using the DP09 energy model. RSAS calls it per sequence and reports whether a pseudoknot is present, the structure, and the free energy. Because the algorithm scales with the fourth power of length, RSAS skips sequences over a length cap (500 nt by default) rather than folding them.
 
 Both ship as macOS binaries; on other platforms you supply the binary.
 

@@ -15,7 +15,7 @@ The window opens on the Analyze page with a sidebar down the left. Seven pages:
 | Page | What it's for |
 |---|---|
 | **Analyze** | Load files, run the analysis, watch the log, export results |
-| **Results** | The most recent run as a scrollable table |
+| **Results** | The most recent run, shown across three read-only tabs (Results Table, Structure Preview, Full Log) |
 | **Settings** | Analysis Settings, Performance, Output Columns, Motif Finder, Quality Score Builder, Sequence Options |
 | **Sequence Extractor** | Pull upstream/downstream regions from local files or NCBI |
 | **Synthetic Pool** | Generate random RNA pools with fixed motif inserts |
@@ -31,10 +31,11 @@ Most of your time lives on Analyze and Settings. The other five pages are tools 
 ### Formats it reads
 
 - **FASTA** (`.fasta`, `.fa`): the usual, one or more sequences.
-- **CSV**: comma-separated, and you tell it which column holds the name and which holds the sequence.
-- **TSV**: tab-separated, same column setup as CSV.
+- **CSV / TSV** (`.csv`, `.tsv`): RSAS auto-detects the delimiter and works out which column is the name and which is the sequence from the header row, so you don't normally pick columns by hand. (From the scripting API you can override the columns explicitly; see the section below.)
+- **Two-column text** (`.txt`): one `name<tab>sequence` per line.
+- **GenBank** (`.gb`, `.gbk`): pulls the record sequences out. This one needs biopython installed.
 
-A practical note: RSAS works in RNA. If your file has T's instead of U's, they get treated as U during folding, but it's cleaner to convert them first so your output reads the way you expect.
+A practical note: RSAS works in RNA. T's are converted to U automatically, and stray spaces, dashes, and pipe characters inside a sequence are stripped, but it's cleaner to start from tidy RNA so your output reads the way you expect.
 
 ### How to load
 
@@ -48,7 +49,7 @@ Click **Browse** on the Analyze page and pick a file, or just drag the file onto
 2. Adjust settings if you need to (sections below).
 3. Click **Analyze**, or press `Cmd+R` / `Ctrl+R`.
 4. Progress messages stream into the log as sequences get processed.
-5. When it finishes, results are written to `Data/Outputs/rna_results.csv` and `Data/Outputs/rna_results.xlsx`.
+5. When it finishes, results are cached to `~/.rsas/Data/Outputs/rna_results.csv` and `rna_results.xlsx`. That's the working copy; Export (below) is how you save a named file wherever you want it.
 
 How long it takes depends mostly on two things: how many sequences, and whether the partition function is on. A few dozen short leaders with MFE only is basically instant. A few thousand sequences with PF enabled is a coffee break, and that's where the CPU-cores setting earns its keep.
 
@@ -109,9 +110,11 @@ This dialog decides what ends up in your CSV and Excel, and it matters for speed
 - **Riboswitch**: the RBS sequestering columns plus partition-function accessibility.
 - **Full Export**: everything on.
 
-**Custom presets:** save your current selection under a name, then load or delete it later. They live in `csv_output_settings.json`.
+**Custom presets:** save your current selection under a name, then load or delete it later. They live in `~/.rsas/csv_output_settings.json`.
 
-**Column groups** (each collapsible): Basic Info, Full-Length MFE, Composition, Range Checks, RBS Sequestering, Hairpin Info, Partition Function, Motif Finder, Quality Scores.
+**Column groups** (each collapsible, and collapsed by default, so expand or use the search box to find a column): Basic Info, Full-Length MFE, Composition, Range Checks, RBS Sequestering, Hairpin Info, Partition Function, Motif Finder, Quality Scores.
+
+Some columns are derived from others. If you enable a derived column, RSAS turns on the columns it depends on automatically, and it warns you if you try to disable a column that another enabled column needs.
 
 ### Motif / Sequence Finder
 
@@ -131,9 +134,11 @@ It reports every overlapping match, not just the best. For each sequence you get
 - Temperature-difference columns (paired% at 42 minus paired% at 25, for instance).
 - A Motif Matches tab in the Excel file, one row per hit per sequence.
 
-### Terminal Hairpin Quality Score Builder
+### Quality Score Builder
 
-Define what the hairpin quality score actually measures. Pick which metrics count (MFE at each temperature, composition), set a weight on each, and preview how the scoring plays out with your current setup.
+Define what the quality score actually measures. There's a builder for the hairpin score and one for the full-length score; they work the same way. For each criterion you pick a metric (MFE at a given temperature, a composition value, a partition-function value, and so on), set a target min and max, a weight (1 to 5), and an optional **grace** zone. Grace gives partial credit just outside the range instead of a hard pass/fail, so a value a little off-target isn't scored the same as one wildly off. A live formula preview shows how the pieces combine.
+
+Below the criteria you can edit the **classification tiers**: the labels and percentage thresholds that turn a weighted score into a class (the defaults are the Tier 1 to Tier 5 bands described in [How it works](methods.md#quality-scoring)). You can keep several named profiles and switch between them. Metrics that need the partition function are flagged, so you'll know to enable PF if you want to score on them.
 
 ### Sequence Options
 
@@ -143,11 +148,13 @@ Tweak input sequences before folding. The main use is appending a sequence (an A
 
 ## Sequence Extractor page
 
-Pull the region around a genomic feature before you analyze it.
+Pull the region around a gene before you analyze it: its 5' leader, its 3' end, or both. Output is a FASTA you load on the Analyze page.
 
-**Local Files tab:** give it a genome FASTA and an annotation file (GFF/GBK), then say which feature type (CDS, usually), which direction (upstream or downstream), and how long a region you want. You choose whether the start codon comes along. Out comes a FASTA you load on the Analyze page.
+**Direction.** Choose **Upstream** (bases before the CDS start, the promoter / 5' UTR), **Downstream** (bases after the CDS end, the terminator / 3' UTR), or **Both**, which writes the upstream and downstream regions as separate entries per gene. Then set the lengths: upstream defaults to 300 bp, downstream to 200 bp. There's also an optional **second window** if you want to extract two regions of different lengths in one run.
 
-**Fetch from NCBI tab:** type an accession and RSAS fetches the genome and annotations for you. Same extraction options as Local Files. This needs an internet connection and biopython installed.
+**Local Files tab:** point it at a genome **FASTA** and a **GenBank** annotation file, pick the direction and lengths, and run.
+
+**Fetch from NCBI tab:** enter an accession, give an **email** (NCBI requires one for programmatic access), choose where to save the download, and RSAS fetches the genome and annotations for you and fills in the Local Files tab. Needs an internet connection and biopython.
 
 ---
 
@@ -162,6 +169,8 @@ A template is a list of segments, concatenated left to right:
 - **Random region**: a stretch of random A/C/G/U, you set the length.
 - **Fixed motif**: an IUPAC pattern like `GGAGG`. Degenerate characters get resolved to a random matching base for each generated sequence.
 
+You can have up to 10 segments, and you can drag a segment by its handle to reorder it. A live preview shows the template as you build it.
+
 The built-in RBS + AUG preset, for example, produces:
 
 ```
@@ -175,6 +184,8 @@ R(84) + GGAGG + R(8) + AUG = 100 nt per sequence
 ### Composition targets (optional)
 
 Turn on filtering to keep only sequences whose composition lands in a target range. GC%, AU%, and GU% each have their own target and tolerance, all independent, all off by default. When a target is on, sequences that miss it are discarded (rejection sampling), so very tight targets can slow generation down or, if they're impossible, never finish, worth keeping in mind.
+
+One thing the dialog warns about, and it's easy to miss: the composition is measured over the **whole** generated sequence, fixed motifs included, not just the random regions. If a chunk of your template is fixed, that fixed content pulls the numbers, so set targets that account for it.
 
 ### Output
 
@@ -198,7 +209,13 @@ Any element can also allow insertions with their own nucleotide constraints. Use
 
 ### Running it
 
-Sequences loaded on the Analyze page carry over, or you can point the dialog at a FASTA. Build or pick a descriptor, run it, and you get back which sequences contain the motif and where.
+Sequences loaded on the Analyze page carry over, or you can point the dialog at a FASTA. Build a descriptor (the motif-map field plus the "auto-fill elements" button is the fast way to scaffold it), or load a preset, then run. You get back which sequences contain the motif and where, and you can export the matches as TSV.
+
+A few search options worth knowing:
+
+- **Both strands** (`-c`, on by default): also searches the reverse complement.
+- **Non-overlapping** (`-u`, off by default): reports only disjoint matches.
+- **N-ratio threshold** (optional): skips sequences whose fraction of `N` bases exceeds the value you set.
 
 One caveat: the `rnarobo` binary ships only for macOS. On Windows or Linux, put a built `rnarobo` on your PATH (or in `bin/<platform>/`) and it'll be picked up.
 
@@ -209,6 +226,11 @@ One caveat: the `rnarobo` binary ships only for macOS. On Windows or Linux, put 
 Standard MFE folding (ViennaRNA) can't represent pseudoknots, the crossing base pairs you find in many riboswitches and structured RNAs. This page predicts them with the bundled [Knotty](https://github.com/HosnaJabbari/Knotty) engine, which uses the DP09 energy model.
 
 Load sequences (carried over from Analyze, or from a FASTA), run, and for each one you get whether a pseudoknot is present, the predicted dot-bracket (with pseudoknot brackets), and the minimum free energy. Results export to CSV.
+
+Two parameters matter here, because pseudoknot prediction is expensive (its cost grows with the fourth power of length):
+
+- **Max length** (default 500 nt). Sequences longer than this are **skipped**, not folded. If your long sequences seem to vanish from the results, this is why. Raise it only if you're prepared to wait.
+- **Timeout** (default 120 seconds per sequence). A sequence that doesn't finish in time is reported as an error rather than holding up the batch.
 
 Reference: Jabbari et al. (2018), *Bioinformatics* 34(22):3849-3856. Same platform caveat as RNArobo: macOS is bundled, other platforms need a `knotty` binary on PATH.
 
@@ -351,14 +373,17 @@ print(f"Wrote {result['written']} sequences to {result['file']}")
 
 ## Where files live
 
-| File | What it is |
+Everything RSAS writes lives under `~/.rsas/` in your home folder, not next to the app. That's deliberate: it means the app keeps working when it's installed as a read-only bundle.
+
+| Path | What it is |
 |---|---|
-| `Data/Inputs/` | A default home for input files (you can load from anywhere) |
-| `Examples/` | Sample FASTA files to try things out |
-| `Data/Outputs/rna_results.csv` | The most recent run, as CSV |
-| `Data/Outputs/rna_results.xlsx` | The most recent run, as Excel |
-| `csv_output_settings.json` | Your saved column choices and custom presets |
-| `.recent_files.json` | The recent-files list (created automatically) |
+| `~/.rsas/Data/Outputs/rna_results.csv` | Working copy of the most recent run (CSV) |
+| `~/.rsas/Data/Outputs/rna_results.xlsx` | Working copy of the most recent run (Excel) |
+| `~/.rsas/csv_output_settings.json` | All your settings: columns, temperatures, RBS config, scoring profiles, presets (the name is historical; it holds more than columns) |
+| `~/.rsas/.recent_files.json` | The recent-files list (created automatically) |
+| `Examples/` | Sample FASTA files in the repo, to try things out |
+
+Export writes a separate, named copy wherever you choose (it defaults to your Downloads folder with a timestamped filename), so the `~/.rsas` copies are just the latest working output.
 
 ---
 

@@ -131,7 +131,7 @@ That pulls in:
 python main.py
 ```
 
-The window should open. To check it end to end, load `Examples/Test_Thermo_RV.fasta`, click Analyze, and confirm you see results in the log and in `Data/Outputs/`.
+The window should open. To check it end to end, load `Examples/Test_Thermo_RV.fasta`, click Analyze, and confirm you see results in the log. RSAS writes its working files under `~/.rsas/` in your home folder (so it keeps working even when installed as a read-only bundle), and Export saves a named copy wherever you choose.
 
 ### Step 7: editable install (optional)
 
@@ -252,7 +252,7 @@ git pull
 pip install -r requirements.txt
 ```
 
-Your settings in `csv_output_settings.json` survive updates.
+Your settings live in `~/.rsas/csv_output_settings.json` (in your home folder, not the repo), so they survive updates and reinstalls.
 
 ---
 

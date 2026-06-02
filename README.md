@@ -31,7 +31,7 @@ A quick note on what RSAS is *for*. The signal it's built to surface is a sequen
 
 ## What it does
 
-RSAS reads RNA sequences (FASTA, CSV, or TSV), folds them at the temperatures you set using ViennaRNA, and reports the structural features that matter for post-transcriptional regulation. For each sequence it runs roughly this pipeline:
+RSAS reads RNA sequences (FASTA, CSV/TSV, two-column text, or GenBank), folds them at the temperatures you set using ViennaRNA, and reports the structural features that matter for post-transcriptional regulation. For each sequence it runs roughly this pipeline:
 
 1. Fold the full-length sequence at every temperature (minimum free energy, and the partition function if you ask for it).
 2. Find the regulatory hairpin, either the terminal stem-loop or the one that sequesters the Shine-Dalgarno sequence.
@@ -88,7 +88,7 @@ Predict structures that include pseudoknots, the crossing base pairs that ordina
 
 ### The interface
 
-A CustomTkinter desktop UI that respects your system's dark or light mode. The sidebar carries seven pages: Analyze, Results, Settings, Sequence Extractor, Synthetic Pool, RNArobo Search, and Pseudoknot Finder. Drag and drop files onto the window, drive it from the keyboard (Cmd/Ctrl+O to open, +R to run, +E to export), and spread large runs across multiple CPU cores. Progress shows up in the log with toast notifications.
+A CustomTkinter desktop UI with a System / Light / Dark switch in the header (it follows your OS theme by default). The sidebar carries seven pages: Analyze, Results, Settings, Sequence Extractor, Synthetic Pool, RNArobo Search, and Pseudoknot Finder. Drag and drop files onto the window, drive it from the keyboard (Cmd/Ctrl+O to open, +R to run, +E to export), and spread large runs across multiple CPU cores. Progress shows up in the log with toast notifications.
 
 ---
 
@@ -183,8 +183,8 @@ RNAThermoFinder/
 │       ├── knotty_wrapper.py         # Knotty subprocess + parser
 │       └── upstream_extractor.py
 ├── Data/
-│   ├── Inputs/                # put input files here (optional; load from anywhere)
-│   └── Outputs/               # results get written here
+│   ├── Inputs/                # optional place to keep inputs (load from anywhere)
+│   └── Outputs/               # placeholder; the app actually writes to ~/.rsas/Data/Outputs/
 └── docs/
     ├── installation.md
     └── usage.md
