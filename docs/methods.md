@@ -92,7 +92,7 @@ Composition columns are straight base counts over a sequence: AU% is (A + U) / l
 
 ## Quality scoring
 
-The quality score turns a pile of numbers into something you can sort a candidate list on. You define a profile: a set of criteria, each with a metric, a target range, a weight, and an optional tolerance. The defaults give six criteria, MFE at each of the three temperatures (target −17 to −2 kcal/mol) plus the three composition checks (AU 50–60%, GC 0–30%, GU 15–25%), every weight 1, no tolerance.
+The quality score turns a pile of numbers into something you can sort a candidate list on. You define a profile: a set of criteria, each with a metric, a target range, a weight, and an optional tolerance. With the default three temperatures you get six criteria: one MFE check per temperature (target −17 to −2 kcal/mol) plus three composition checks (AU 50–60%, GC 0–30%, GU 15–25%), every weight 1, no tolerance. The MFE criteria scale with however many temperatures you configure, so a five-temperature run starts from eight default criteria, not six.
 
 For each criterion, RSAS scores the value:
 
