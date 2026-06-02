@@ -7,20 +7,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Removed
-- **Switch Finder** feature removed from the public release. The temperature-
-  dependent structural-switching tool (nav item, page, dialog, and the
-  `switch_finder` / `switch_finder_dialog` modules) is no longer part of RSAS.
-  Earlier changelog entries that reference `switch_finder.py` are retained as
-  historical record.
+- Switch Finder is gone from the public release. The temperature-switching tool,
+  its nav item, page, dialog, and the `switch_finder` and `switch_finder_dialog`
+  modules, is no longer part of RSAS. Older changelog entries that mention
+  `switch_finder.py` stay as they are, since they record what happened at the time.
 
 ### Changed
-- **Documentation overhaul.** README, installation, and usage guides audited and
-  corrected against the current app: documented the RNArobo Search and Pseudoknot
-  Finder tools, the configurable RBS Window, the seven-page sidebar, and the
-  updated project tree; fixed the PyInstaller spec name (`RSAS.spec`) and the
-  bundled sample-file path (`Examples/Test_Thermo_RV.fasta`).
-- Package version aligned to 3.2.0 (`setup.py`); docs now reference v3.2.
-- Minimum Python documented as 3.9 to match `setup.py`.
+- Rewrote the README, installation, and usage guides. They now cover the RNArobo
+  Search and Pseudoknot Finder tools, the configurable RBS Window, the seven-page
+  sidebar, and the current project layout, and they read like a person wrote them.
+- Fixed two things the old docs got wrong: the PyInstaller spec is `RSAS.spec`,
+  not `RNAThermoFinder.spec`, and the sample file lives at
+  `Examples/Test_Thermo_RV.fasta`.
+- Bumped the package version to 3.2.0 in `setup.py` so it matches the docs, and
+  documented the minimum Python as 3.9 to match it.
 
 ## [3.2.0] - 2026-05-18
 
