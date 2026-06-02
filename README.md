@@ -215,6 +215,7 @@ The build takes a few minutes and bundles Python, the dependencies, and the Vien
 - **[Usage guide](docs/usage.md)** walks through the GUI, every settings dialog, the output formats, the scripting API, and a pile of practical tips.
 - **[How it works](docs/methods.md)** is the methods document: the folding model, the RBS and hairpin algorithms, how the quality score is computed, what the thermometer signal is, and where the limits are.
 - **[Output column reference](docs/output-columns.md)** defines every CSV/Excel column with its meaning and units.
+- **[Worked example](Examples/README.md)** runs the bundled sample data end to end with real output numbers and explains how to read them.
 
 ---
 

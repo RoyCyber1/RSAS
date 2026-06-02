@@ -41,6 +41,10 @@ A practical note: RSAS works in RNA. T's are converted to U automatically, and s
 
 Click **Browse** on the Analyze page and pick a file, or just drag the file onto the window. The path shows up in the input field, and you can type or paste a path there directly if that's easier. `Cmd+O` (macOS) or `Ctrl+O` (Windows/Linux) opens the file browser too.
 
+Two things worth knowing. Drag-and-drop relies on an optional library (`tkdnd`); if it isn't installed, the drop silently does nothing and you just use Browse instead. And the "N sequences loaded" badge counts sequences that passed a basic nucleotide check, so if a few entries in your file are malformed they're skipped (with a warning in the log) and the count comes out lower than the number of records in the file.
+
+New here? There's a full worked run, with real output numbers, in [`Examples/README.md`](../Examples/README.md).
+
 ---
 
 ## Running an analysis
