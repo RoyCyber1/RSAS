@@ -12,7 +12,7 @@ In RSAS the partition function backs three families of output:
 
 - **Ensemble free energy** (kcal/mol) for the full sequence and for the detected hairpin. It is always at or below the MFE, because the ensemble includes the MFE structure plus everything else.
 - **Mean pairing probability** (0 to 1), the average over all positions of the probability that the position is paired.
-- **RBS accessibility** (0 to 1, reported as a percentage), the probability that the ribosome binding site is unpaired, plus temperature-difference columns that express the thermometer signal at the ensemble level.
+- **RBS accessibility** (0 to 100, a percentage), how unpaired the ribosome binding site is across the ensemble, plus temperature-difference columns that express the thermometer signal at the ensemble level.
 
 ## When to use it
 

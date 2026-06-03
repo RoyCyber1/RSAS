@@ -110,7 +110,7 @@ The page is a thin GUI over a subprocess wrapper around the Knotty command-line 
 - For each sequence, the wrapper uppercases the input, converts any `T` to `U` (Knotty expects RNA, ACGU), strips IUPAC ambiguity codes (with a warning), and rejects empty or over-2000-nt input. It then invokes the binary with the `-w` flag for minimal output.
 - `_parse_knotty_output()` extracts the structure and energy from Knotty's stdout and sets the pseudoknot flag by scanning the structure for any crossing-level bracket. The parsed fields land in a `KnottyResult` (`seq_name`, `sequence`, `structure`, `energy`, `has_pseudoknot`, plus raw output and error fields).
 
-Knotty implements the DP09 energy model (from HotKnots V2.0) and predicts complex pseudoknotted structures with a dynamic-programming algorithm whose cost grows with the fourth power of sequence length (O(n^4)), rising further for more complex pseudoknot classes. That fourth-power scaling is the reason for the Max length skip and the per-sequence timeout. Doubling the length multiplies the work roughly sixteenfold.
+Knotty implements the DP09 energy model (from HotKnots V2.0) and predicts complex pseudoknotted structures with a dynamic-programming algorithm whose cost grows steeply with sequence length, from O(n^4) up to about O(n^6) for more complex pseudoknot classes. That scaling is the reason for the Max length skip and the per-sequence timeout: at the O(n^4) floor, doubling the length multiplies the work roughly sixteenfold, and more for harder pseudoknots.
 
 For the engine's place in the wider analysis, and the version pinned for reproducibility, see [../methods.md](../methods.md).
 
@@ -147,7 +147,7 @@ The energies above are illustrative. Your own runs will produce the actual DP09 
 ## Limitations and gotchas
 
 - **The 500 nt skip is silent per sequence.** This is the big one. Sequences over Max length never get folded and produce no result row. Only an aggregate "Skipped N" line in the log tells you they were dropped. If long sequences seem to vanish from your results, the Max length cap is why. Raise it (and wait) if you truly need them.
-- **Cost grows with the fourth power of length.** A sequence twice as long takes roughly sixteen times as long to fold. This is the reason the cap and timeout exist, and the reason this tool is not meant for whole transcripts.
+- **Cost grows steeply with length (O(n^4) up to O(n^6)).** A sequence twice as long takes at least roughly sixteen times as long to fold, and more for complex pseudoknots. This is the reason the cap and timeout exist, and the reason this tool is not meant for whole transcripts.
 - **macOS-only bundled binary.** The app ships a `knotty` binary for macOS. On other platforms you must build Knotty from source and put it on your PATH (or in `bin/<platform>/`) for the finder to work. This is the same platform caveat as RNArobo.
 - **RNA-only energies.** The DP09 model folds RNA in isolation. Ligand-RNA interactions, which matter for riboswitches, are not modeled, so a riboswitch's ligand-bound conformation is not what you are seeing.
 - **Pseudoknot accuracy is lower than nested accuracy.** Sensitivity for pseudoknotted pairs is meaningfully below that for nested pairs. Predicted crossing pairs deserve more skepticism than predicted nested pairs.

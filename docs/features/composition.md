@@ -122,7 +122,7 @@ The hairpin numbers come from `base_pair_percentages` in `RnaThermofinder/core/H
 
 The in-range flags are computed by `base_pair_in_range`, which does an inclusive `min <= value <= max` comparison. The min/max values are pulled out of the active scoring profile by `extract_ranges_from_profile` (in `RnaThermofinder/utils/quality_scoring.py`), which maps each composition criterion to a `(min_key, max_key)` pair: hairpin composition maps to `au_min`/`au_max`, `gc_min`/`gc_max`, `gu_min`/`gu_max`, and full-sequence composition maps to `orig_au_min`/`orig_au_max` and so on.
 
-For the broader pipeline context, see [../methods.md](../methods.md). Note that the Composition section of methods.md describes both flavors with the single-nucleotide formula; the hairpin columns in practice use the base-pair-type formula above.
+For the broader pipeline context, see [../methods.md](../methods.md), whose Composition section covers both flavors: full-sequence nucleotide frequency and hairpin base-pair fractions.
 
 ---
 
