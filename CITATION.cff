@@ -21,7 +21,6 @@ repository-code: "https://github.com/RoyCyber1/RNAThermoFinder"
 url: "https://github.com/RoyCyber1/RNAThermoFinder"
 keywords:
   - RNA thermometer
-  - riboswitch
   - RNA secondary structure
   - ribosome binding site
   - ViennaRNA

@@ -88,7 +88,11 @@ Once the RBS is located, its **paired percentage** at a given temperature is jus
 
 ## Composition
 
-Composition columns are straight base counts over a sequence: AU% is (A + U) / length × 100, GC% is (G + C) / length, GU% is (G + U) / length. T is treated as U. These are reported for the full sequence and for the extracted hairpin. They're temperature-independent, since they describe the sequence, not the structure.
+RSAS reports composition two different ways, and the difference matters.
+
+For the **full sequence**, the columns are single-nucleotide frequencies: AU% is (A + U) / length × 100, GC% is (G + C) / length, GU% is (G + U) / length, with T treated as U. These describe the sequence and are temperature-independent.
+
+For the **hairpin**, the columns mean something else: the fraction of the hairpin's base *pairs* of each type. Hairpin AU% is the share of pairs that are A-U, GC% the share that are G-C, GU% the share that are G-U wobble, computed over the pairs in the hairpin's folded structure (`base_pair_percentages` in `HairpinAnalysis.py`). Because every pair falls into one of these classes, the three hairpin percentages sum to 100. So a hairpin GU% of 30 means 30% of the hairpin's pairs are wobble pairs, not that 30% of its bases are G or U. Don't compare hairpin composition columns to full-sequence ones directly; they measure different things.
 
 ---
 

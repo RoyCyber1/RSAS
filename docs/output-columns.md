@@ -70,7 +70,7 @@ The extracted regulatory hairpin: how it was found, its sequence and structure, 
 | `RBS_Detection_Params` | The anchor / side / window used for RBS detection this run, e.g. `AUG/last/5-13`. Records your settings alongside the result. | — |
 | `Hairpin_Sequence` | The extracted hairpin subsequence. | — |
 | `Hairpin_Structure` | The hairpin's dot-bracket structure. | — |
-| `Hairpin_AU%` / `Hairpin_GC%` / `Hairpin_GU%` | Composition of the hairpin sequence. | % |
+| `Hairpin_AU%` / `Hairpin_GC%` / `Hairpin_GU%` | Base-**pair** composition of the hairpin: the fraction of its folded base pairs that are A-U, G-C, and G-U wobble. These are over pairs, not bases, so they sum to 100. (Unlike the `Original_*` columns above, which are single-nucleotide frequencies.) | % of pairs |
 | `Hairpin_MFE_{T}C` | MFE of the hairpin folded on its own at each temperature. | kcal/mol |
 
 ### Hairpin range checks
@@ -105,9 +105,9 @@ Ensemble-level numbers, only present when you enable PF (it's the slow part of a
 | `PF_Full_MeanPaired_{T}C` | Mean pairing probability across the full sequence. | probability (0–1) |
 | `PF_HP_Ensemble_{T}C` | Ensemble free energy of the hairpin. | kcal/mol |
 | `PF_HP_MeanPaired_{T}C` | Mean pairing probability across the hairpin. | probability (0–1) |
-| `PF_RBS_Access_{T}C` | RBS accessibility: how unpaired the RBS is across the ensemble. Higher = more accessible to the ribosome. | probability (0–1) |
-| `PF_RBS_Diff_{hi}-{base}` | Change in RBS accessibility from base to highest temperature. The ensemble-level version of the thermometer signal. | probability points |
-| `PF_RBS_Diff_{mid}-{base}` | Same for the middle temperature (3+ temperatures only). | probability points |
+| `PF_RBS_Access_{T}C` | RBS accessibility: mean probability that the RBS positions are unpaired across the ensemble, as a percentage. Higher = more accessible to the ribosome. | % (0–100) |
+| `PF_RBS_Diff_{hi}-{base}` | Change in RBS accessibility from base to highest temperature. The ensemble-level version of the thermometer signal. | percentage points |
+| `PF_RBS_Diff_{mid}-{base}` | Same for the middle temperature (3+ temperatures only). | percentage points |
 | `PF_HP_Ensemble_{T}C_InRange` | Whether the hairpin ensemble energy is in range, per temperature. | — |
 
 ---
@@ -124,7 +124,7 @@ Present only when motif search is enabled. When a sequence has several matches, 
 | `Motif_Match_Pos` | Match positions, 0-based and half-open. | — |
 | `Motif_Paired%_{T}C` | Paired percentage of each match at each temperature. | % |
 | `Motif_Struct_{T}C` | Each match's dot-bracket at each temperature. | — |
-| `Motif_PF_Access_{T}C` | Partition-function accessibility of each match (needs PF on). | probability (0–1) |
+| `Motif_PF_Access_{T}C` | Partition-function accessibility of each match: mean unpaired probability over the match, as a percentage (needs PF on). | % (0–100) |
 | `Motif_Paired_Diff_{hi}-{base}` | Change in motif paired% from base to highest temperature. | percentage points |
 | `Motif_PF_Diff_{hi}-{base}` | Change in motif PF accessibility, base to highest. | probability points |
 | `Motif_Paired_Diff_{mid}-{base}` / `Motif_PF_Diff_{mid}-{base}` | Same differences for the middle temperature (3+ temperatures). | — |

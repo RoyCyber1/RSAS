@@ -212,7 +212,8 @@ The build takes a few minutes and bundles Python, the dependencies, and the Vien
 ## Documentation
 
 - **[Installation guide](docs/installation.md)** covers system requirements, getting ViennaRNA working, the Python dependencies, verification, and the troubleshooting you'll probably need.
-- **[Usage guide](docs/usage.md)** walks through the GUI, every settings dialog, the output formats, the scripting API, and a pile of practical tips.
+- **[Usage guide](docs/usage.md)** walks through the GUI, loading and running, the output formats, the scripting API, and a pile of practical tips.
+- **[Features and tools, in depth](docs/features/README.md)** is one detailed page per feature and tool: every option, what it produces, a worked example, and the gotchas.
 - **[How it works](docs/methods.md)** is the methods document: the folding model, the RBS and hairpin algorithms, how the quality score is computed, what the thermometer signal is, and where the limits are.
 - **[Output column reference](docs/output-columns.md)** defines every CSV/Excel column with its meaning and units.
 - **[Worked example](Examples/README.md)** runs the bundled sample data end to end with real output numbers and explains how to read them.

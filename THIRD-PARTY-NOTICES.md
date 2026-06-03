@@ -13,7 +13,8 @@ each upstream project for its full license text and the conditions of use.
 - **Upstream:** https://github.com/rampasek/RNArobo
 - **Use in RSAS:** structural motif search (the RNArobo Search page).
 - **Citation:** Rampášek, L., Jimenez, R.M., Lupták, A., Vinař, T., Brejová, B.
-  RNA motif search with data-driven element ordering. *BMC Bioinformatics*.
+  (2016). RNA motif search with data-driven element ordering.
+  *BMC Bioinformatics* 17:216.
 - **Terms:** redistributed for academic/non-commercial use under the upstream
   project's terms. See the upstream repository for the full license.
 
