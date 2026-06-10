@@ -36,6 +36,11 @@ def _create_macos_dmg(app_path):
         # Symlink to /Applications for drag-install convenience
         os.symlink("/Applications", os.path.join(staging, "Applications"))
 
+        # Include third-party license notices alongside the app
+        licenses_src = os.path.join(os.getcwd(), "LICENSES")
+        if os.path.isdir(licenses_src):
+            shutil.copytree(licenses_src, os.path.join(staging, "LICENSES"))
+
         # Install script — copies app and strips quarantine automatically
         install_script = os.path.join(staging, "Install RSAS.sh")
         with open(install_script, "w") as f:

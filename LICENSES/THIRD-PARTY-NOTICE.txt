@@ -1,0 +1,43 @@
+THIRD-PARTY LICENSE NOTICES — bundled binaries
+==============================================
+
+RSAS (RNA Structure Analysis Suite) is released under the MIT License
+(see LICENSE.md). It invokes the binaries below as separate executables
+(via subprocess). They are aggregated with RSAS, not linked into it, so
+each remains under its own license and RSAS itself stays under the MIT
+License. The full GPL text referenced below is in GPL-3.0.txt.
+
+----------------------------------------------------------------------
+RNArobo   (bin/<platform>/rnarobo)
+  License : GNU General Public License v3.0 (see GPL-3.0.txt)
+  Source  : https://github.com/rampasek/RNArobo
+  Authors : L. Rampasek, R. M. Jimenez, A. Luptak, T. Vinar, B. Brejova
+  Status  : redistributed unmodified.
+
+  GPL-3.0 permits commercial and non-commercial use, modification, and
+  redistribution, provided the license and copyright notices are
+  preserved and the corresponding source remains available (it is, at
+  the URL above).
+
+----------------------------------------------------------------------
+Knotty    (bin/<platform>/knotty) and its SimFold / MultiRNAFold energy
+          parameter files (bin/<platform>/simfold/params/)
+  License : GNU General Public License (stated in the upstream README;
+            copyright University of Alberta and the MultiRNAFold /
+            SimFold authors)
+  Source  : https://github.com/HosnaJabbari/Knotty
+            SimFold / MultiRNAFold: http://www.rnasoft.ca/download.html
+  Authors : H. Jabbari et al. (Knotty); M. Andronescu, D. H. Mathews
+            et al. (SimFold / MultiRNAFold parameters)
+  Status  : redistributed unmodified.
+
+----------------------------------------------------------------------
+ViennaRNA (bundled in the packaged application via its Python bindings)
+  Folding and thermodynamic calculations are performed with ViennaRNA.
+  Project / license: https://www.tbi.univie.ac.at/RNA/
+  Citation: Lorenz, R. et al. (2011). ViennaRNA Package 2.0.
+            Algorithms for Molecular Biology 6:26.
+
+Biopython, NumPy, openpyxl, CustomTkinter and Pillow are also bundled in
+the packaged application; each is under its own permissive open-source
+license (see the respective projects).
