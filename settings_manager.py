@@ -27,6 +27,20 @@ def get_user_data_dir() -> Path:
     return data_dir
 
 
+def default_output_dir() -> Path:
+    """Writable, user-visible default directory for saved outputs (``~/RSAS``).
+
+    Avoids ~/Downloads, ~/Desktop and ~/Documents, which a packaged macOS app
+    may be blocked from writing to without a permission prompt.
+    """
+    try:
+        out = Path.home() / "RSAS"
+        out.mkdir(parents=True, exist_ok=True)
+        return out
+    except OSError:
+        return get_user_data_dir()
+
+
 # ---------------------------------------------------------------------------
 # Default temperatures — single source of truth
 # ---------------------------------------------------------------------------

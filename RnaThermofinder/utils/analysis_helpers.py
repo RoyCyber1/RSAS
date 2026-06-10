@@ -73,6 +73,7 @@ def _build_column_map(temps: List[int]) -> list:
                      f"rbs_seq_diff_{temps[-2]}_{t_first}"))
 
     cmap += [("hairpin_detection_method", "hairpin_detection_method"),
+             ("rbs_detection_params", "rbs_detection_params"),
              ("hairpin_sequence", "hairpin_sequence"),
              ("hairpin_structure", "hairpin_structure"),
              ("hairpin_au_percent", "hairpin_au_percent"),

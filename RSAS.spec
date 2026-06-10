@@ -1,9 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
-binaries = [('bin/macos/rnarobo', 'bin')]
-hiddenimports = ['RNA', 'tkinter', 'customtkinter', 'numpy', 'Bio', 'PIL']
+datas = [('bin/macos/simfold/params', 'bin/simfold/params')]
+binaries = [('bin/macos/rnarobo', 'bin'), ('bin/macos/knotty', 'bin')]
+hiddenimports = ['RNA', 'tkinter', 'customtkinter', 'numpy', 'Bio', 'PIL', 'openpyxl']
 tmp_ret = collect_all('RNA')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('RnaThermofinder')

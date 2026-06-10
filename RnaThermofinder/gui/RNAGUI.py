@@ -17,7 +17,7 @@ import customtkinter as ctk
 
 # ── project imports ──────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from settings_manager import SettingsManager, get_user_data_dir
+from settings_manager import SettingsManager, get_user_data_dir, default_output_dir
 from RnaThermofinder.core import FastaParse, HairpinAnalysis
 
 # Dialog imports (CTk-based)
@@ -128,7 +128,7 @@ class RSASApp:
 
     def __init__(self, root: ctk.CTk):
         self.root = root
-        self.root.title("RSAS: RNA Structure Analysis Suite v3.0.0")
+        self.root.title("RSAS: RNA Structure Analysis Suite v3.2.0")
         self.root.geometry("1200x780")
         self.root.minsize(900, 600)
 
@@ -196,7 +196,7 @@ class RSASApp:
         ).pack(side=tk.LEFT, padx=(8, 0))
 
         ctk.CTkLabel(
-            header, text="v3.0.0",
+            header, text="v3.2.0",
             font=ctk.CTkFont(size=11),
             text_color=MUTED,
         ).pack(side=tk.LEFT, padx=(8, 0))
@@ -224,7 +224,7 @@ class RSASApp:
 
         self._sidebar_buttons: dict[str, SidebarButton] = {}
         nav_items = [
-            ("analyze",  "Analyze",           "\u25b6"),
+            ("analyze",  "Analyze (BTAT)",    "\u25b6"),
             ("results",  "Results",           "\u2630"),
             ("settings", "Settings",          "\u2699"),
             ("upstream", "Sequence Extractor", "\u21c5"),
@@ -1110,7 +1110,7 @@ class RSASApp:
                     ("All files", "*.*"),
                 ],
                 initialfile=default_filename,
-                initialdir=str(Path.home() / "Downloads"),
+                initialdir=str(default_output_dir()),
             )
             if not output_file:
                 return

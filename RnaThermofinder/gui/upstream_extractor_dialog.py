@@ -10,6 +10,13 @@ from pathlib import Path
 import threading
 import customtkinter as ctk
 
+try:
+    from settings_manager import default_output_dir
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from settings_manager import default_output_dir
+
 
 class SequenceExtractorDialog:
     """Dialog for sequence extraction (upstream / downstream / both) with NCBI fetch (CTk)."""
@@ -145,7 +152,7 @@ class SequenceExtractorDialog:
         row3 = ctk.CTkFrame(tab, fg_color="transparent")
         row3.pack(fill=tk.X, pady=4)
         ctk.CTkLabel(row3, text="Save Downloads To:", width=170).pack(side=tk.LEFT)
-        self.download_dir_var = tk.StringVar(value=str(Path.home() / "Downloads"))
+        self.download_dir_var = tk.StringVar(value=str(default_output_dir()))
         ctk.CTkEntry(row3, textvariable=self.download_dir_var, width=280).pack(side=tk.LEFT, padx=4)
         ctk.CTkButton(row3, text="Browse", width=80,
                       command=self._browse_download_dir).pack(side=tk.LEFT, padx=4)
@@ -330,7 +337,7 @@ class SequenceExtractorDialog:
     def _browse_save_file(self, file_type, filetypes):
         fn = filedialog.asksaveasfilename(
             title="Save extracted sequences as...",
-            initialdir=str(Path.home() / "Downloads"),
+            initialdir=str(default_output_dir()),
             initialfile="extracted_sequences.fasta",
             filetypes=filetypes, defaultextension=".fasta")
         if fn:

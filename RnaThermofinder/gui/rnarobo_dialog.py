@@ -16,6 +16,13 @@ from pathlib import Path
 import threading
 import customtkinter as ctk
 
+try:
+    from settings_manager import default_output_dir
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from settings_manager import default_output_dir
+
 from RnaThermofinder.utils.rnarobo_wrapper import (
     RNAROBO_PRESETS,
     DescriptorSpec,
@@ -721,7 +728,7 @@ class RNAroboDialog:
         output_file = filedialog.asksaveasfilename(
             parent=self.dialog,
             title="Save results as...",
-            initialdir=str(Path.home() / "Downloads"),
+            initialdir=str(default_output_dir()),
             initialfile="rnarobo_results.tsv",
             filetypes=[("TSV files", "*.tsv"), ("Text files", "*.txt"),
                        ("All files", "*.*")],

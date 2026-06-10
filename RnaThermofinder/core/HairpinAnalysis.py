@@ -1156,18 +1156,21 @@ def pf_fold_at_temps_batch(seq, temps=(25, 37, 42), max_pf_len=500):
     return results
 
 
-def calc_rbs_pf_accessibility(seq, rbs_seq, pf_result):
+def calc_rbs_pf_accessibility(seq, rbs_seq, pf_result, rbs_start=None):
     """
-    Calculate RBS accessibility from partition function unpaired probabilities.
+    RBS accessibility from partition-function unpaired probabilities: the mean
+    probability that the RBS nucleotides are unpaired (0-100%).
 
-    Instead of binary paired/unpaired from MFE, this gives the PROBABILITY
-    that each RBS nucleotide is unpaired (continuous, 0-100%).
+    rbs_start is the RBS start index in seq. When given it is used directly;
+    otherwise the RBS is located by substring search, which can land on an
+    earlier copy of a repeated motif.
     """
     if not rbs_seq or not seq or pf_result is None:
         return {'rbs_pf_accessibility_pct': None}
 
-    rbs_start = seq.upper().find(rbs_seq.upper())
-    if rbs_start == -1:
+    if rbs_start is None:
+        rbs_start = seq.upper().find(rbs_seq.upper())
+    if rbs_start is None or rbs_start < 0:
         return {'rbs_pf_accessibility_pct': None}
 
     unpaired_probs = pf_result['unpaired_probs']
@@ -1276,7 +1279,8 @@ def _analyze_single_sequence(args):
         pf_full_ensemble[t] = 0.0
         pf_full_mean_paired[t] = 0.0
 
-    if calc_settings.get("calculate_original_mfe_temps", False) and need_pf_full:
+    # PF computes its own folds, so it only depends on whether PF is needed.
+    if need_pf_full:
         try:
             pf_full_batch = pf_fold_at_temps_batch(og_seq, temps=tuple(temps))
             pf_window_info = pf_full_batch.get('pf_window_used', {})
@@ -1309,9 +1313,9 @@ def _analyze_single_sequence(args):
                                                      settings.get('orig_gu_max', 100)) else "Not in Range") if calc_orig_comp else "N/A"
 
     # Full-length RBS sequestering analysis (dynamic)
-    full_rbs = {}  # temp -> {"seq":, "struct":, "paired":}
+    full_rbs = {}  # temp -> {"seq":, "struct":, "paired":, "pos":}
     for t in temps:
-        full_rbs[t] = {"seq": None, "struct": None, "paired": None}
+        full_rbs[t] = {"seq": None, "struct": None, "paired": None, "pos": None}
 
     rbs_seq_diffs = {}  # key like "42_25" -> float
 
@@ -1319,7 +1323,8 @@ def _analyze_single_sequence(args):
         # Always compute for base temp
         rbs_base = find_rbs_in_full_sequence(og_seq, structures.get(base_temp, ""), rbs_cfg)
         full_rbs[base_temp] = {"seq": rbs_base["rbs_seq"], "struct": rbs_base["rbs_structure"],
-                                "paired": rbs_base["rbs_paired_percent"]}
+                                "paired": rbs_base["rbs_paired_percent"],
+                                "pos": rbs_base.get("rbs_pos")}
 
         if calc_orig_temps:
             for t in temps:
@@ -1347,11 +1352,21 @@ def _analyze_single_sequence(args):
     if need_pf_hairpin:
         rbs_seq_for_pf = full_rbs[base_temp]["seq"]
         pf_rbs_seq = pf_window_info.get('pf_seq', og_seq) if pf_window_info else og_seq
+        window_offset = pf_window_info.get('offset', 0) if pf_window_info else 0
+        # Use the start-codon-anchored RBS position in window coordinates;
+        # fall back to substring search only if it is unavailable or out of range.
+        rbs_pos_full = full_rbs[base_temp].get("pos")
+        rbs_pos_in_window = None
+        if rbs_pos_full is not None and rbs_seq_for_pf:
+            cand = rbs_pos_full - window_offset
+            if 0 <= cand <= len(pf_rbs_seq) - len(rbs_seq_for_pf):
+                rbs_pos_in_window = cand
         if rbs_seq_for_pf and pf_full[base_temp] is not None:
             try:
                 for t in temps:
                     if pf_full[t] is not None:
-                        res = calc_rbs_pf_accessibility(pf_rbs_seq, rbs_seq_for_pf, pf_full[t])
+                        res = calc_rbs_pf_accessibility(pf_rbs_seq, rbs_seq_for_pf, pf_full[t],
+                                                        rbs_start=rbs_pos_in_window)
                         pf_rbs_access[t] = res['rbs_pf_accessibility_pct']
 
                 base_acc = pf_rbs_access[t_first]
@@ -1745,6 +1760,25 @@ def _build_fallback_headers(temps):
     return hdrs
 
 
+def needs_original_calcs_for_profile(active_full_profile):
+    """Return (need_composition, need_mfe_temps) for a full-length scoring
+    profile: whether it scores on original composition or per-temperature MFE
+    metrics, so those calculations can be enabled before scoring.
+    """
+    need_comp = False
+    need_mfe = False
+    if not active_full_profile:
+        return need_comp, need_mfe
+    for crit in active_full_profile.get("criteria", []):
+        metric_id = crit.get("metric", "")
+        if metric_id in ("original_au_percent", "original_gc_percent",
+                         "original_gu_percent"):
+            need_comp = True
+        elif metric_id.startswith("original_mfe_"):
+            need_mfe = True
+    return need_comp, need_mfe
+
+
 def calculate_results_final(
         sequences: List[Tuple[str, str]],
         output_dir: Path,
@@ -1794,7 +1828,8 @@ def calculate_results_final(
     calc_settings = {}
     seq_settings = {}
     if csv_settings_manager:
-        calc_settings = csv_settings_manager.settings.get("calculation_settings", {})
+        # Copy so per-run auto-enables (below) don't mutate persisted settings.
+        calc_settings = dict(csv_settings_manager.settings.get("calculation_settings", {}))
         seq_settings = csv_settings_manager.settings.get("sequence_processing", {})
 
     # Resolve RBS detection config: per-run override (settings dict) wins,
@@ -1876,6 +1911,15 @@ def calculate_results_final(
                     if metric_id.startswith("pf_full_"):
                         need_pf_full = True
                         break
+
+        # Enable original composition / per-temp MFE when the full-length
+        # profile scores on them, so the values are computed before scoring.
+        _need_comp, _need_mfe = needs_original_calcs_for_profile(
+            csv_settings_manager.get_active_full_scoring_profile())
+        if _need_comp:
+            calc_settings["calculate_original_composition"] = True
+        if _need_mfe:
+            calc_settings["calculate_original_mfe_temps"] = True
 
     pf_status = "enabled" if (need_pf_full or need_pf_hairpin) else "skipped (no PF columns selected)"
     log(f"  Partition function: {pf_status}")

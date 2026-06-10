@@ -8,6 +8,13 @@ from pathlib import Path
 import threading
 import customtkinter as ctk
 
+try:
+    from settings_manager import default_output_dir
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from settings_manager import default_output_dir
+
 from RnaThermofinder.utils.synthetic_pool_generator import (
     PRESETS,
     validate_iupac,
@@ -469,7 +476,7 @@ class SyntheticPoolDialog:
     def _browse_output(self):
         fn = filedialog.asksaveasfilename(
             title="Save pool as...",
-            initialdir=str(Path.home() / "Downloads"),
+            initialdir=str(default_output_dir()),
             initialfile="synthetic_pool.fasta",
             filetypes=[("FASTA files", "*.fasta *.fa"), ("All files", "*.*")],
             defaultextension=".fasta",

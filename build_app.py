@@ -73,7 +73,7 @@ def _create_macos_dmg(app_path):
         readme = os.path.join(staging, "README.txt")
         with open(readme, "w") as f:
             f.write(
-                "RSAS — RNA Structure Analysis Suite v3.0\n"
+                "RSAS — RNA Structure Analysis Suite v3.2\n"
                 "=========================================\n\n"
                 "QUICK INSTALL\n"
                 "  Double-click 'Install RSAS.sh' to install automatically.\n\n"

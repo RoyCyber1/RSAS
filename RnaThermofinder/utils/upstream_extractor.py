@@ -44,33 +44,74 @@ def fetch_from_ncbi(accession: str, email: str, output_dir: str,
 
     Returns:
         Tuple of (genbank_path, fasta_path) for the downloaded files
+
+    Raises:
+        ValueError: if NCBI returns an empty/invalid record after retries.
+        OSError: if no writable output directory can be found.
     """
+    import time
+
     Entrez.email = email
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
 
     def log(msg):
         if progress_callback:
             progress_callback(msg)
 
+    # ~/Downloads and similar folders can be write-blocked for a packaged
+    # macOS app; fall back to a writable location if so.
+    output_path = Path(output_dir)
+    try:
+        output_path.mkdir(parents=True, exist_ok=True)
+        probe = output_path / ".rsas_write_test"
+        probe.write_text("ok"); probe.unlink()
+    except OSError:
+        from settings_manager import default_output_dir
+        output_path = default_output_dir() / "downloads"
+        output_path.mkdir(parents=True, exist_ok=True)
+        log(f"Note: '{output_dir}' is not writable; saving to {output_path} instead.")
+
+    def _efetch_text(rettype, retries=3):
+        """Fetch a record as text, validating the response and retrying on
+        transient errors."""
+        last_err = None
+        for attempt in range(retries):
+            try:
+                handle = Entrez.efetch(db="nucleotide", id=accession,
+                                       rettype=rettype, retmode="text")
+                text = handle.read()
+                handle.close()
+                if isinstance(text, bytes):
+                    text = text.decode("utf-8", "replace")
+                if text and text.strip():
+                    return text
+                last_err = f"empty response for {accession} ({rettype})"
+            except Exception as e:  # network error, HTTP 4xx/429, etc.
+                last_err = str(e)
+            if attempt < retries - 1:
+                time.sleep(1.5 * (attempt + 1))  # backoff for NCBI rate limits
+        raise ValueError(f"NCBI fetch failed for {accession} ({rettype}): {last_err}")
+
     log(f"Fetching GenBank record for {accession}...")
-    # Fetch GenBank format — use gbwithparts to get full annotations + sequence
-    # for CON (contig) records. Regular "gb" returns a stub for CON accessions
-    # with no CDS features and no sequence data.
-    handle = Entrez.efetch(db="nucleotide", id=accession, rettype="gbwithparts", retmode="text")
+    # gbwithparts gets full annotations + sequence for CON (contig) records;
+    # plain "gb" returns a stub for CON accessions with no CDS/sequence.
+    gb_text = _efetch_text("gbwithparts")
+    if "LOCUS" not in gb_text or "FEATURES" not in gb_text:
+        raise ValueError(
+            f"NCBI returned an invalid GenBank record for '{accession}' "
+            f"(no LOCUS/FEATURES). Check the accession number.")
     gb_path = str(output_path / f"{accession}.gb")
     with open(gb_path, "w") as f:
-        f.write(handle.read())
-    handle.close()
+        f.write(gb_text)
     log(f"GenBank file saved: {gb_path}")
 
     log(f"Fetching FASTA record for {accession}...")
-    # Fetch FASTA format
-    handle = Entrez.efetch(db="nucleotide", id=accession, rettype="fasta", retmode="text")
+    fasta_text = _efetch_text("fasta")
+    if not fasta_text.lstrip().startswith(">"):
+        raise ValueError(
+            f"NCBI returned an invalid FASTA record for '{accession}'.")
     fasta_path = str(output_path / f"{accession}.fasta")
     with open(fasta_path, "w") as f:
-        f.write(handle.read())
-    handle.close()
+        f.write(fasta_text)
     log(f"FASTA file saved: {fasta_path}")
 
     return gb_path, fasta_path

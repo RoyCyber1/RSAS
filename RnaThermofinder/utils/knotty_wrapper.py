@@ -235,6 +235,17 @@ def run_knotty(
 
         structure, energy, has_pk = _parse_knotty_output(proc.stdout)
 
+        if not structure:
+            # No structure despite a 0 exit code usually means the energy
+            # parameter files could not be loaded.
+            return KnottyResult(
+                seq_name=seq_name, sequence=clean_seq,
+                raw_stdout=proc.stdout, raw_stderr=proc.stderr,
+                return_code=proc.returncode,
+                error="Knotty produced no structure (energy parameters may be "
+                      "missing — check the bundled simfold/params directory).",
+            )
+
         return KnottyResult(
             seq_name=seq_name,
             sequence=clean_seq,
