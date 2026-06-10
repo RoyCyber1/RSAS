@@ -85,7 +85,7 @@ def _create_macos_dmg(app_path):
                 "      xattr -cr /Applications/RSAS.app\n\n"
                 "  Then double-click RSAS from your Applications folder normally.\n\n"
                 "SUPPORT\n"
-                "  https://github.com/RoyCyber1/RNAThermoFinder\n"
+                "  https://github.com/RoyCyber1/RSAS\n"
             )
 
         # Build DMG

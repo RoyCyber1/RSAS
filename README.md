@@ -104,7 +104,7 @@ brew install viennarna            # macOS
 # sudo apt-get install viennarna  # Ubuntu/Debian
 
 # 2. Clone and install the Python deps
-git clone https://github.com/RoyCyber1/RNAThermoFinder.git
+git clone https://github.com/RoyCyber1/RSAS.git
 cd RNAThermoFinder
 pip install -r requirements.txt
 
@@ -114,7 +114,7 @@ python main.py
 
 ### Pre-built app
 
-When a release has a packaged build attached, you can download `RSAS.app` (macOS) or `RSAS.exe` (Windows) from [Releases](https://github.com/RoyCyber1/RNAThermoFinder/releases) and run it with no Python or ViennaRNA setup. On macOS the app isn't notarized, so the first time, right-click it, choose **Open**, then **Open** again. If the latest release is source-only, use the from-source steps above.
+When a release has a packaged build attached, you can download `RSAS.app` (macOS) or `RSAS.exe` (Windows) from [Releases](https://github.com/RoyCyber1/RSAS/releases) and run it with no Python or ViennaRNA setup. On macOS the app isn't notarized, so the first time, right-click it, choose **Open**, then **Open** again. If the latest release is source-only, use the from-source steps above.
 
 If ViennaRNA gives you trouble (it's the usual culprit), the [installation guide](docs/installation.md) has a whole troubleshooting section.
 
@@ -226,7 +226,7 @@ If RSAS shows up in published work:
 
 ```
 Vaknin, R. (2025). RSAS: RNA Structure Analysis Suite v3.2.
-GitHub: https://github.com/RoyCyber1/RNAThermoFinder
+GitHub: https://github.com/RoyCyber1/RSAS
 ```
 
 The repository also ships a [`CITATION.cff`](CITATION.cff), so GitHub's "Cite this repository" button generates APA and BibTeX entries for you.

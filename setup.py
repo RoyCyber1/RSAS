@@ -23,7 +23,7 @@ setup(
     description="RSAS: RNA Structure Analysis Suite for identifying and analyzing RNA thermometers and regulatory structures",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/RoyCyber1/RNAThermoFinder",
+    url="https://github.com/RoyCyber1/RSAS",
     packages=find_packages(),
     py_modules=["main", "settings_manager"],
     classifiers=[

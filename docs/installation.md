@@ -8,7 +8,7 @@ One thing up front, because it's the part that trips everyone up: RSAS folds RNA
 
 ## Option A: the pre-built app (easiest)
 
-1. Go to the [Releases page](https://github.com/RoyCyber1/RNAThermoFinder/releases).
+1. Go to the [Releases page](https://github.com/RoyCyber1/RSAS/releases).
 2. Download the latest `.zip` for your platform.
 3. Unzip and run it:
    - **macOS**: double-click `RSAS.app`. The first time, macOS will say it can't verify the developer, that's expected, the app isn't notarized. Right-click it, choose **Open**, then **Open** again. Once is enough; it remembers after that.
@@ -83,7 +83,7 @@ If that prints a version number, you're past the hard part. If it throws `Module
 ### Step 3: clone the repo
 
 ```bash
-git clone https://github.com/RoyCyber1/RNAThermoFinder.git
+git clone https://github.com/RoyCyber1/RSAS.git
 cd RNAThermoFinder
 ```
 
