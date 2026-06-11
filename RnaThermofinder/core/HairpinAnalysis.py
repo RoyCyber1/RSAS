@@ -1048,9 +1048,8 @@ def base_pairs_at_temps_struct(hairpin_seq, temp=25):
 
 
 # PARTITION FUNCTION FEATURES
-# Unlike MFE which returns a single "best" structure, the partition function
-# considers ALL possible structures weighted by their Boltzmann probability.
-# This captures the ensemble behavior that defines RNA thermometers.
+# MFE returns one best structure; the partition function sums over all
+# structures weighted by Boltzmann probability, capturing ensemble behavior.
 
 def pf_fold_at_temp(seq, temp):
     """
@@ -1059,8 +1058,7 @@ def pf_fold_at_temp(seq, temp):
     Returns dict with ensemble energy, mean base pair probability,
     and per-position unpaired probabilities.
 
-    Optimized: Uses numpy vectorization for BPP matrix processing
-    instead of O(n^2) Python loops. ~50-100x faster for typical sequences.
+    BPP matrix is summed with numpy rather than nested Python loops.
     """
     md = RNA.md()
     md.temperature = float(temp)
@@ -1071,7 +1069,6 @@ def pf_fold_at_temp(seq, temp):
     fc = RNA.fold_compound(seq, md)
     mfe_struct, mfe_energy = fc.mfe()
 
-    # Partition function — considers ALL possible structures
     fc.exp_params_rescale(mfe_energy)
     pf_struct, ensemble_energy = fc.pf()
 

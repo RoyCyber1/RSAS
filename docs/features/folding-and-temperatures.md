@@ -1,6 +1,6 @@
 # Folding and temperatures
 
-MFE folding is the physics at the heart of RSAS, and the configurable folding temperatures are how you point that physics at the biology you care about.
+MFE folding is the core calculation in RSAS. The configurable folding temperatures are how you aim it at the biology you care about.
 
 ---
 

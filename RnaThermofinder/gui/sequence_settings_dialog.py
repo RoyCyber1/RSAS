@@ -1,6 +1,5 @@
 """
-Sequence Settings Dialog — CustomTkinter edition.
-Drop-in replacement for sequence_settings_dialog.py with dark-mode support.
+Sequence preprocessing settings dialog (CustomTkinter).
 """
 
 import tkinter as tk
@@ -39,7 +38,6 @@ class _DialogToast(ctk.CTkFrame):
         except tk.TclError:
             pass
 
-# Class for the sequence settings dialog with a modern look
 class SequenceSettingsDialogModern:
     """Dialog for configuring sequence preprocessing options (CTk)."""
 

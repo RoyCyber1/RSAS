@@ -256,9 +256,8 @@ def _write_fasta_entry(out_fasta, gene, protein_id, product, strand_str,
                        direction_label, length, seq):
     """Write a single FASTA entry with standardised header.
 
-    The header reports the ACTUAL extracted length (len(seq)), which may be
+    The header reports the actual extracted length (len(seq)), which may be
     shorter than the requested ``length`` for genes near chromosome boundaries.
-    This ensures scientific accuracy — readers see the true sequence length.
     """
     actual_length = len(seq)
     header = (f">{gene}|{protein_id}|{product}|"

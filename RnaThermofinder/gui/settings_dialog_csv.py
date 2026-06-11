@@ -1,9 +1,9 @@
 """
-CSV Output Column Settings Dialog — CustomTkinter edition.
-Drop-in replacement for settings_dialog_csv.py with dark-mode support.
-Preserves all features: collapsible groups, search, presets, dependency indicators.
-Temperature-aware: column groups, dependencies, and presets are generated
-dynamically from the configured folding temperature list.
+CSV output column settings dialog (CustomTkinter).
+
+Collapsible groups, search, presets, and dependency indicators. Column groups,
+dependencies, and presets are generated dynamically from the configured folding
+temperature list.
 """
 
 import sys

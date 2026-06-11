@@ -1,13 +1,13 @@
 """
-Quality Score Builder Dialog — CustomTkinter edition.
+Quality Score Builder dialog (CustomTkinter).
 
-Allows scientists to create, edit, and manage scoring profiles with:
+Edit and store scoring profiles:
   - Selectable metrics (MFE, composition, PF Ensemble, RBS Sequestered)
   - Per-criterion min/max ranges, weights (1-5), and tolerance zones
-  - Customizable classification tiers
-  - Saveable/loadable profiles
+  - Classification tiers
+  - Save/load profiles
 
-Parameterized for both Hairpin and Full-Length scoring contexts.
+Works in both Hairpin and Full-Length scoring contexts (set via `mode`).
 """
 
 import copy

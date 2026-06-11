@@ -1,7 +1,8 @@
 """
-RSAS: RNA Structure Analysis Suite — CustomTkinter Modern UI
-Sidebar navigation, tabbed results, drag-and-drop, determinate progress,
-recent files, keyboard shortcuts, toast notifications — all CustomTkinter.
+RSAS: RNA Structure Analysis Suite — main CustomTkinter window.
+
+Sidebar navigation, tabbed results, drag-and-drop file loading, recent files,
+and keyboard shortcuts.
 """
 
 import json
