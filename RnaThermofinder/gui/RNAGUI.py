@@ -361,6 +361,13 @@ class RSASApp:
         btn_row = ctk.CTkFrame(page, fg_color="transparent")
         btn_row.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 8))
 
+        ctk.CTkButton(
+            btn_row, text="Load Example", width=120, height=40,
+            fg_color="transparent", border_width=1, border_color=ACCENT,
+            text_color=("gray10", "gray90"), hover_color=SIDEBAR_HOVER,
+            command=self.load_example,
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
         self.analyze_btn = ctk.CTkButton(
             btn_row, text="\u25b6  Run Analysis", width=160, height=40,
             fg_color=ACCENT, hover_color=ACCENT_HOVER,
@@ -842,6 +849,22 @@ class RSASApp:
         if filename:
             self.file_path_var.set(filename)
             self._add_recent_file(filename)
+
+    def _example_dataset_path(self) -> Path:
+        """Locate the bundled example FASTA, from source or a frozen app."""
+        rel = Path("Examples") / "sample_dataset.fasta"
+        if getattr(sys, "frozen", False):
+            return Path(sys._MEIPASS) / rel
+        return Path(__file__).resolve().parent.parent.parent / rel
+
+    def load_example(self):
+        """Load the bundled example dataset into the input field."""
+        path = self._example_dataset_path()
+        if path.exists():
+            self.file_path_var.set(str(path))
+            self._toast("Loaded example dataset (6 sequences)", "info")
+        else:
+            self._toast("Example dataset not found", "warning")
 
     # ──────────────────────────────────────────────────────────────────────
     # Logging

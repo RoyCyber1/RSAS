@@ -183,6 +183,12 @@ def build_app():
     else:
         print(f"Note: knotty binary not found at {knotty_candidate} — Pseudoknot Finder will be unavailable in the build")
 
+    # Bundle the example dataset so the "Load Example" button works in the build
+    example_fasta = os.path.join("Examples", "sample_dataset.fasta")
+    if os.path.isfile(example_fasta):
+        base_options.append(f'--add-data={example_fasta}{os.pathsep}Examples')
+        print(f"Bundling example dataset: {example_fasta}")
+
     if system == "Darwin":
         print("Building for macOS...")
         options = base_options + [

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('bin/macos/simfold/params', 'bin/simfold/params')]
+datas = [('bin/macos/simfold/params', 'bin/simfold/params'), ('Examples/sample_dataset.fasta', 'Examples')]
 binaries = [('bin/macos/rnarobo', 'bin'), ('bin/macos/knotty', 'bin')]
 hiddenimports = ['RNA', 'tkinter', 'customtkinter', 'numpy', 'Bio', 'PIL', 'openpyxl']
 tmp_ret = collect_all('RNA')
