@@ -1,13 +1,18 @@
 # Example data and a worked run
 
-Two sample files live here so you can see RSAS work before pointing it at your own data.
+Sample files live here so you can see RSAS work before pointing it at your own data.
 
 | File | What it is |
 |---|---|
-| `Test_Thermo_RV.fasta` | Four bacterial 5' leader sequences (sigma70, tetR, ibpA, oppF), each carrying a Shine-Dalgarno and a start codon. Written as DNA (with T's); RSAS converts them to RNA on load. |
+| `sample_dataset.fasta` | Six bacterial 5' leader sequences (sigma70, tetR, ibpA, oppF, dmsABC, ymcE/gnsA), each with a Shine-Dalgarno and a start codon. A quick set to load and run end to end. |
+| `Test_Thermo_RV.fasta` | The first four of those leaders, used by the walkthrough below. |
 | `Testing_structs_THERMO.fasta` | Two short RNA constructs for checking structure handling. |
 
-The walkthrough below uses `Test_Thermo_RV.fasta`.
+Sequences are written as DNA (with T's); RSAS converts them to RNA on load.
+
+**Quick test:** launch RSAS, drag in `Examples/sample_dataset.fasta` on the Analyze page, keep the defaults, and click Analyze. The six sequences finish in under a second and come back ranked by quality score.
+
+The detailed walkthrough below uses `Test_Thermo_RV.fasta`.
 
 ---
 
