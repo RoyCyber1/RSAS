@@ -15,7 +15,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Rewrote the README, installation, and usage guides. They now cover the RNArobo
   Search and Pseudoknot Finder tools, the configurable RBS Window, the seven-page
-  sidebar, and the current project layout, and they read like a person wrote them.
+  sidebar, and the current project layout.
 - Fixed two things the old docs got wrong: the PyInstaller spec is `RSAS.spec`,
   not `RNAThermoFinder.spec`, and the sample file lives at
   `Examples/Test_Thermo_RV.fasta`.

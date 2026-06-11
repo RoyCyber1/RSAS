@@ -66,13 +66,6 @@ Desktop.ini
 csv_output_settings.json
 .recent_files.json
 
-# Local agent / editor assistant config
-.claude/
-*.claude
-
-# Internal planning notes (kept local, not part of the published project)
-docs/superpowers/
-
 # Test outputs
 test_output/
 temp/
