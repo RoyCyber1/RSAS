@@ -5,6 +5,7 @@ Sample files live here so you can see RSAS work before pointing it at your own d
 | File | What it is |
 |---|---|
 | `sample_dataset.fasta` | Six bacterial 5' leader sequences (sigma70, tetR, ibpA, oppF, dmsABC, ymcE/gnsA), each with a Shine-Dalgarno and a start codon. A quick set to load and run end to end. |
+| `SyntheticRNAT_smalldataset.fasta` | A 69-sequence synthetic pool (100 nt each, N84-GGAGG-N8-AUG architecture) for trying RSAS on a larger batch and seeing the tier ranking. |
 | `Test_Thermo_RV.fasta` | The first four of those leaders, used by the walkthrough below. |
 | `Testing_structs_THERMO.fasta` | Two short RNA constructs for checking structure handling. |
 
